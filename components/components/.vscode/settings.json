@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "protocomm_console.h": "c",
+        "protocomm.h": "c",
+        "aes.h": "c",
+        "sha256.h": "c",
+        "protocomm_security1.h": "c",
+        "protocomm_security.h": "c"
+    }
+}

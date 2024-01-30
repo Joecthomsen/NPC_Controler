@@ -1,0 +1,192 @@
+syntax = "proto3";
+
+enum Status {
+    Success = 0;
+    InvalidSecScheme = 1;
+    InvalidProto = 2;
+    TooManySessions = 3;
+    InvalidArgument = 4;
+    InternalError = 5;
+    CryptoError = 6;
+    InvalidSession = 7;
+}
+
+enum WifiStationState {
+    Connected = 0;
+    Connecting = 1;
+    Disconnected = 2;
+    ConnectionFailed = 3;
+}
+
+enum WifiConnectFailedReason {
+    AuthError = 0;
+    NetworkNotFound = 1;
+}
+
+enum WifiAuthMode {
+    Open = 0;
+    WEP  = 1;
+    WPA_PSK = 2;
+    WPA2_PSK = 3;
+    WPA_WPA2_PSK = 4;
+    WPA2_ENTERPRISE = 5;
+    WPA3_PSK = 6;
+    WPA2_WPA3_PSK = 7;
+}
+
+message WifiConnectedState {
+    string ip4_addr = 1;
+    WifiAuthMode auth_mode = 2;
+    bytes ssid = 3;
+    bytes bssid = 4;
+    int32 channel = 5;
+}
+
+message CmdCtrlReset {
+
+}
+
+message RespCtrlReset {
+
+}
+
+message CmdCtrlReprov {
+
+}
+
+message RespCtrlReprov{
+
+}
+
+enum WiFiCtrlMsgType {
+    TypeCtrlReserved = 0;
+    TypeCmdCtrlReset = 1;
+    TypeRespCtrlReset = 2;
+    TypeCmdCtrlReprov = 3;
+    TypeRespCtrlReprov = 4;
+}
+
+message WiFiCtrlPayload {
+    WiFiCtrlMsgType msg = 1;
+    Status status = 2;
+    oneof payload {
+        CmdCtrlReset cmd_ctrl_reset = 11;
+        RespCtrlReset resp_ctrl_reset = 12;
+        CmdCtrlReprov cmd_ctrl_reprov = 13;
+        RespCtrlReprov resp_ctrl_reprov = 14;
+    }
+}
+
+
+message CmdGetStatus {
+
+}
+
+message RespGetStatus {
+    Status status = 1;
+    WifiStationState sta_state = 2;
+    oneof state {
+        WifiConnectFailedReason fail_reason = 10;
+        WifiConnectedState connected = 11;
+    }
+}
+
+message CmdSetConfig {
+    bytes ssid = 1;
+    bytes passphrase = 2;
+    bytes bssid = 3;
+    int32 channel = 4;
+}
+
+message RespSetConfig {
+    Status status = 1;
+}
+
+message CmdApplyConfig {
+
+}
+
+message RespApplyConfig {
+    Status status = 1;
+}
+
+enum WiFiConfigMsgType {
+    TypeCmdGetStatus = 0;
+    TypeRespGetStatus = 1;
+    TypeCmdSetConfig = 2;
+    TypeRespSetConfig = 3;
+    TypeCmdApplyConfig = 4;
+    TypeRespApplyConfig = 5;
+}
+
+message WiFiConfigPayload {
+    WiFiConfigMsgType msg = 1;
+    oneof payload {
+        CmdGetStatus cmd_get_status = 10;
+        RespGetStatus resp_get_status = 11;
+        CmdSetConfig cmd_set_config = 12;
+        RespSetConfig resp_set_config = 13;
+        CmdApplyConfig cmd_apply_config = 14;
+        RespApplyConfig resp_apply_config = 15;
+    }
+}
+
+
+message CmdScanStart {
+    bool blocking = 1;
+    bool passive = 2;
+    uint32 group_channels = 3;
+    uint32 period_ms = 4;
+}
+
+message RespScanStart {
+
+}
+
+message CmdScanStatus {
+
+}
+
+message RespScanStatus {
+    bool scan_finished = 1;
+    uint32 result_count = 2;
+}
+
+message CmdScanResult {
+    uint32 start_index = 1;
+    uint32 count = 2;
+}
+
+message WiFiScanResult {
+    bytes ssid = 1;
+    uint32 channel = 2;
+    int32 rssi = 3;
+    bytes bssid = 4;
+    WifiAuthMode auth = 5;
+}
+
+message RespScanResult {
+    repeated WiFiScanResult entries = 1;
+}
+
+enum WiFiScanMsgType {
+    TypeCmdScanStart = 0;
+    TypeRespScanStart = 1;
+    TypeCmdScanStatus = 2;
+    TypeRespScanStatus = 3;
+    TypeCmdScanResult = 4;
+    TypeRespScanResult = 5;
+}
+
+message WiFiScanPayload {
+    WiFiScanMsgType msg = 1;
+    Status status = 2;
+    oneof payload {
+        CmdScanStart cmd_scan_start = 10;
+        RespScanStart resp_scan_start = 11;
+        CmdScanStatus cmd_scan_status = 12;
+        RespScanStatus resp_scan_status = 13;
+        CmdScanResult cmd_scan_result = 14;
+        RespScanResult resp_scan_result = 15;
+    }
+}
