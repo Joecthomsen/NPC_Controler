@@ -2,7 +2,6 @@
 #include "driver/gpio.h"
 #include "driver/gptimer.h"
 #include "esp_log.h"
-//#include <app-common/zap-generated/attributes/Accessors.h>
 
 gptimer_handle_t gptimer;   //Init the timer
 gptimer_config_t gptimer_config;    //Init timer config struct
@@ -18,111 +17,6 @@ esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
 //constexpr EndpointId kLightEndpointId = 1;
 
-/**
- * @brief Initialize the DALI transmitter.
- *
- * This function initializes the peripherals required for the DALI transmitter to operate, 
- * including GPIO and the general-purpose timer. It also enables the timer to make it ready for use.
- *
- * @param void
- * @return void
- */
-void init_DALI_transmit(){
-
-/*     ESP_LOGI(TAG, "Writing to Current Level cluster");
-    status = Clusters::LevelControl::Attributes::CurrentLevel::Set(kLightEndpointId, 100); 
-
-    if (status != EMBER_ZCL_STATUS_SUCCESS)
-    {
-        ESP_LOGE(TAG, "Updating level cluster failed: %x", status);
-    }
-    */
-
-    // Initialize the GPIO configuration
-    io_config.intr_type = GPIO_INTR_DISABLE;
-    io_config.mode = GPIO_MODE_OUTPUT;
-    io_config.pin_bit_mask = (1ULL << GPIO_PIN);
-    io_config.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_config.pull_up_en = GPIO_PULLUP_DISABLE;
-   
-    err = gpio_config(&io_config); //Init the GPIO 
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to configure GPIO pin");
-    }
-    else
-        ESP_LOGI(TAG, "GPIO pin configured successfully");
-
-    err = gpio_set_level(GPIO_PIN, DALI_IDLE_VALUE);     // Set the GPIO pin to 1 (HIGH) as the DALI standby requires
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set TX pin to LOW");
-    }
-    else
-        ESP_LOGI(TAG, "TX pin set to LOW successfully");
-
-    gptimer_alarm_config_t gptimer_alarm_config;    //Init alarm config struct
-
-    gptimer_config.clk_src = GPTIMER_CLK_SRC_DEFAULT;   //Set clock source to default   
-    gptimer_config.direction = GPTIMER_COUNT_UP;        //Set counting direction to UP   
-    gptimer_config.resolution_hz = TIMER_FREQUENZ;      //Set timer frequenz (to 1MHz)                                                                
-    gptimer_config.intr_priority = 1;                              
-                                                       
-    gptimer_alarm_config.alarm_count = TIMER_FREQUENZ/BAUD_RATE;  //Set the alarm trigger point
-    gptimer_alarm_config.reload_count = 0;                        //Reload value upon alarm trigger
-
-    err = gptimer_new_timer(&gptimer_config, &gptimer);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to configure the timer");
-    }
-    else
-        ESP_LOGI(TAG, "Timer configured successfully");
-
-    err = gptimer_set_alarm_action(gptimer, &gptimer_alarm_config);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set alarm action");
-    }
-    else
-        ESP_LOGI(TAG, "Alarm action set successfully");
-
-    gptimer_event_callbacks_t cbs = 
-    {
-        .on_alarm = transmit_bit_on_timer_alarm, // register user callback
-    };
-
-    err = gptimer_register_event_callbacks(gptimer, &cbs, NULL);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to register event callback for timer");
-    }
-    else
-        ESP_LOGI(TAG, "Timer event callback registered successfully");
-
-    err = gptimer_enable(gptimer);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to enable the timer in DALI init function");
-    }
-    else
-        ESP_LOGI(TAG, "Timer enabled in DALI_transmit_init() function");
-};
-
-/**
- * @brief Initiate the transmission of a DALI data frame.
- *
- * This function initiates the transmission of a DALI data frame by starting a general-purpose timer,
- * which in turn triggers the transmit_bit_on_timer_alarm() function. Additionally, this function
- * handles the Manchester encoding process and stores the encoded data.
- *
- * @param cmd The data frame to transmit.
- * @return void
- */
-void sendDALI_TX(uint16_t cmd){
-    
-    dataToTransmit = manchesterEncode(cmd);
-    err = gptimer_start(gptimer);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start the timer");
-    }
-    else
-        ESP_LOGI(TAG, "Timer started successfully");
-}
 
 /**
  * @brief Transmit a single bit on timer alarm.
@@ -138,7 +32,12 @@ void sendDALI_TX(uint16_t cmd){
  */
 static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
 {
-    bool returnState = true;
+    //err = gptimer_stop(gptimer);
+    gptimer_set_raw_count(gptimer, 0);
+    printf("Interrupt triggered\n");
+
+    return true;
+   /*  bool returnState = true;
     switch (state)
     {
         case START_BIT:
@@ -194,8 +93,122 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
             state = START_BIT;
             break;
         }
-    return returnState;    
+    return returnState;     */
+}
+
+
+
+/**
+ * @brief Initialize the DALI transmitter.
+ *
+ * This function initializes the peripherals required for the DALI transmitter to operate, 
+ * including GPIO and the general-purpose timer. It also enables the timer to make it ready for use.
+ *
+ * @param void
+ * @return void
+ */
+void init_DALI_transmit(){
+
+/*     ESP_LOGI(TAG, "Writing to Current Level cluster");
+    status = Clusters::LevelControl::Attributes::CurrentLevel::Set(kLightEndpointId, 100); 
+
+    if (status != EMBER_ZCL_STATUS_SUCCESS)
+    {
+        ESP_LOGE(TAG, "Updating level cluster failed: %x", status);
+    }
+    */
+
+    // Initialize the GPIO configuration
+    io_config.intr_type = GPIO_INTR_DISABLE;
+    io_config.mode = GPIO_MODE_OUTPUT;
+    io_config.pin_bit_mask = (1ULL << GPIO_PIN);
+    io_config.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    io_config.pull_up_en = GPIO_PULLUP_DISABLE;
+   
+    err = gpio_config(&io_config); //Init the GPIO 
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to configure GPIO pin");
+    }
+    else
+        ESP_LOGI(TAG, "GPIO pin configured successfully");
+
+    err = gpio_set_level(GPIO_PIN, DALI_IDLE_VALUE);     // Set the GPIO pin to 1 (HIGH) as the DALI standby requires
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set TX pin to LOW");
+    }
+    else
+        ESP_LOGI(TAG, "TX pin set to LOW successfully");
+
+    gptimer_alarm_config_t gptimer_alarm_config;    //Init alarm config struct
+
+    gptimer_config.clk_src = GPTIMER_CLK_SRC_DEFAULT;   //Set clock source to default   
+    gptimer_config.direction = GPTIMER_COUNT_UP;        //Set counting direction to UP   
+    gptimer_config.resolution_hz = TIMER_FREQUENZ;      //Set timer frequenz (to 1MHz)                                                                
+    gptimer_config.intr_priority = 1;                              
+                                                       
+    gptimer_alarm_config.alarm_count = 10000000;//TIMER_FREQUENZ/BAUD_RATE;  //Set the alarm trigger point
+    gptimer_alarm_config.reload_count = 0; //Reload value upon alarm trigger
+    gptimer_alarm_config.flags.auto_reload_on_alarm = 1;         
+
+    err = gptimer_new_timer(&gptimer_config, &gptimer);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to configure the timer");
+    }
+    else
+        ESP_LOGI(TAG, "Timer configured successfully");
+
+    err = gptimer_set_alarm_action(gptimer, &gptimer_alarm_config);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set alarm action");
+    }
+    else
+        ESP_LOGI(TAG, "Alarm action set successfully");
+
+    gptimer_event_callbacks_t cbs = 
+    {
+        .on_alarm = transmit_bit_on_timer_alarm, // register user callback
+    };
+
+    err = gptimer_register_event_callbacks(gptimer, &cbs, NULL);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to register event callback for timer");
+    }
+    else
+        ESP_LOGI(TAG, "Timer event callback registered successfully");
+
+    err = gptimer_enable(gptimer);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to enable the timer in DALI init function");
+    }
+    else{
+        ESP_LOGI(TAG, "Timer enabled in DALI_transmit_init() function");
+    }
+    err = gptimer_start(gptimer);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to start the timer");
+    }
+    else
+        ESP_LOGI(TAG, "Timer started successfully");
 };
+
+/**
+ * @brief Initiate the transmission of a DALI data frame.
+ *
+ * This function initiates the transmission of a DALI data frame by starting a general-purpose timer,
+ * which in turn triggers the transmit_bit_on_timer_alarm() function. Additionally, this function
+ * handles the Manchester encoding process and stores the encoded data.
+ *
+ * @param cmd The data frame to transmit.
+ * @return void
+ */
+void sendDALI_TX(uint16_t cmd){
+    
+    dataToTransmit = manchesterEncode(cmd);
+
+    uint64_t time;
+    err = gptimer_get_raw_count(gptimer, &time); 
+    ESP_LOGI(TAG, "Current timer value: %llu", time);
+}
 
 
 /**

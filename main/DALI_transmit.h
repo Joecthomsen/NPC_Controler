@@ -24,7 +24,8 @@ enum State {
 };
 
 void init_DALI_transmit();
-static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx);
+//static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx);
+//static bool test(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx);
 void sendDALI_TX(uint16_t cmd);
 uint32_t manchesterEncode(uint16_t data);
 uint8_t percentToDalimapping(uint8_t input);

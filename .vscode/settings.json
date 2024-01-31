@@ -14,5 +14,20 @@
     ],
     "idf.port": "/dev/ttyUSB0",
     "idf.pythonBinPath": "/home/johannes/.espressif/python_env/idf5.3_py3.10_env/bin/python",
-    "idf.toolsPath": "/home/johannes/.espressif"
+    "idf.toolsPath": "/home/johannes/.espressif",
+    "files.associations": {
+        "freertos.h": "c",
+        "dali_transmit.h": "c",
+        "gpio.h": "c",
+        "esp_system.h": "c",
+        "sdkconfig.h": "c",
+        "inttypes.h": "c",
+        "stdlib.h": "c",
+        "esp_chip_info.h": "c",
+        "gptimer.h": "c",
+        "timer.h": "c",
+        "task.h": "c",
+        "esp_flash.h": "c"
+    },
+    "idf.flashType": "UART"
 }

@@ -3,4 +3,6 @@
 cmake_minimum_required(VERSION 3.16)
 
 include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+#message("Including custom components")
+#add_subdirectory("/home/johannes/Desktop/Afslutnings_projekt/contoler/main/custom_components")
 project(contoler)
