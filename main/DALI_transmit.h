@@ -5,7 +5,8 @@
 #include "driver/gptimer.h"
 //#include "driver/timer.h"
 
-#define GPIO_PIN GPIO_NUM_2
+#define GPIO_PIN_TX GPIO_NUM_2
+#define GPIO_PIN_RX GPIO_NUM_3
 
 #define TIMER_GROUP    TIMER_GROUP_0
 #define TIMER_NUMBER   TIMER_0

@@ -9,7 +9,6 @@ bool manchesterClock = 1;
 enum State state = START_BIT;
 int8_t counter = 0;
 uint32_t dataToTransmit = 0;
-//uint16_t data = 0xF0F5;
 esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
 bool timerOn = false;
@@ -84,7 +83,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
     {
         case START_BIT:
             if(counter < 1){
-                err = gpio_set_level(GPIO_PIN, 1);
+                err = gpio_set_level(GPIO_PIN_TX, 1);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send start bit");
                     returnState = false;
@@ -92,7 +91,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 counter++;
             }
             else{
-                err = gpio_set_level(GPIO_PIN, 0);
+                err = gpio_set_level(GPIO_PIN_TX, 0);
                 manchesterClock = 0;
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send start bit");
@@ -106,7 +105,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
             //Here we want to send the data, one bit at each iteratation
             if(counter >= 0){
                 uint32_t bitToSend = (dataToTransmit >> counter) & 0x01; // Extract the next bit
-                err = gpio_set_level(GPIO_PIN, bitToSend);
+                err = gpio_set_level(GPIO_PIN_TX, bitToSend);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send data bit");
                     returnState = false;
@@ -114,7 +113,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 counter--;
             }
             else{
-                err = gpio_set_level(GPIO_PIN, DALI_IDLE_VALUE);
+                err = gpio_set_level(GPIO_PIN_TX, DALI_IDLE_VALUE);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send first half-stop bit");
                     returnState = false;
@@ -125,7 +124,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
             break;
         case STOP_BIT:
             if(counter == 0){
-                err = gpio_set_level(GPIO_PIN, DALI_IDLE_VALUE);
+                err = gpio_set_level(GPIO_PIN_TX, DALI_IDLE_VALUE);
                 counter++;
             }
             else if(counter < 3){
@@ -201,27 +200,52 @@ uint8_t percentToDalimapping(uint8_t input){
 
 void initGPIO(){
 
-    //Configure the GPIO pin
-    gpio_config_t io_config;
-    io_config.intr_type = GPIO_INTR_DISABLE;
-    io_config.mode = GPIO_MODE_OUTPUT;
-    io_config.pin_bit_mask = (1ULL << GPIO_PIN);
-    io_config.pull_down_en = GPIO_PULLDOWN_DISABLE;
-    io_config.pull_up_en = GPIO_PULLUP_DISABLE;
-   
-    err = gpio_config(&io_config); //Init the GPIO 
+    //Configure the GPIO pin TX
+    gpio_config_t io_config_tx = {
+        .intr_type = GPIO_INTR_DISABLE,
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = (1ULL << GPIO_PIN_TX),
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+    };
+
+    //Configure the GPIO pin RX
+    gpio_config_t io_config_rx = {
+        .intr_type = GPIO_INTR_DISABLE,
+        .mode = GPIO_MODE_OUTPUT,
+        .pin_bit_mask = (1ULL << GPIO_PIN_TX),
+        .pull_down_en = GPIO_PULLDOWN_DISABLE,
+        .pull_up_en = GPIO_PULLUP_DISABLE,
+    };
+
+    err = gpio_config(&io_config_tx); //Init the GPIO TX
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to configure GPIO pin");
     }
     else
         ESP_LOGI(TAG, "GPIO pin configured successfully");
 
-    err = gpio_set_level(GPIO_PIN, DALI_IDLE_VALUE);     // Set the GPIO pin to 1 (HIGH) as the DALI standby requires
+    err = gpio_set_level(GPIO_PIN_TX, DALI_IDLE_VALUE);     // Set the GPIO TX pin to 0 (LOW) as the DALI standby requires
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set TX pin to LOW");
     }
     else
         ESP_LOGI(TAG, "TX pin set to LOW successfully");
+
+    err = gpio_config(&io_config_rx); //Init the GPIO
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to configure GPIO pin");
+    }
+    else
+        ESP_LOGI(TAG, "GPIO pin configured successfully");
+    err = gpio_set_level(GPIO_PIN_RX, DALI_IDLE_VALUE);     // Set the GPIO RX pin to 0 (LOW) as the DALI standby requires
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set RX pin to LOW");
+    }
+    else
+        ESP_LOGI(TAG, "RX pin set to LOW successfully");
+    
+
 }
 
 void initTimer(){
