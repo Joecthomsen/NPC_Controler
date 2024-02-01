@@ -16,20 +16,22 @@ bool timerOn = false;
 
 gptimer_handle_t gptimer;   //Init the timer
 gptimer_config_t gptimer_config;    //Init timer config struct
-gpio_config_t io_config;
 
 //Prototypes
 void initGPIO();
 void initTimer();
+uint32_t manchesterEncode(uint16_t data);
+uint8_t percentToDalimapping(uint8_t input);
 
 /**
  * @brief Initialize the DALI transmitter.
  *
  * This function initializes the peripherals required for the DALI transmitter to operate, 
  * including GPIO and the general-purpose timer. It also enables the timer to make it ready for use.
- *
+ *  
  * @param void
  * @return void
+ * @attention Must be called before any other function in this file.
  */
 void init_DALI_transmit(){
     initGPIO();     // Initialize the GPIO configuration
@@ -43,7 +45,7 @@ void init_DALI_transmit(){
  * which in turn triggers the transmit_bit_on_timer_alarm() function. Additionally, this function
  * handles the Manchester encoding process and stores the encoded data.
  *
- * @param cmd The data frame to transmit.
+ * @param cmd uint16 data frame to transmit.
  * @return void
  */
 void sendDALI_TX(uint16_t cmd){
@@ -61,7 +63,6 @@ void sendDALI_TX(uint16_t cmd){
         printf("%d", bit); 
     }
     printf("\n");
-    
 }
 
 /**
@@ -138,8 +139,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 }
                 state = START_BIT;
                 timerOn = false;
-                incrementer++;
-                
+                incrementer++;                
             }
             break;
     };
@@ -201,6 +201,8 @@ uint8_t percentToDalimapping(uint8_t input){
 
 void initGPIO(){
 
+    //Configure the GPIO pin
+    gpio_config_t io_config;
     io_config.intr_type = GPIO_INTR_DISABLE;
     io_config.mode = GPIO_MODE_OUTPUT;
     io_config.pin_bit_mask = (1ULL << GPIO_PIN);
@@ -223,15 +225,13 @@ void initGPIO(){
 }
 
 void initTimer(){
+
+    //Configure the timer
     gptimer_alarm_config_t gptimer_alarm_config;    //Init alarm config struct
     gptimer_config.clk_src = GPTIMER_CLK_SRC_DEFAULT;   //Set clock source to default   
     gptimer_config.direction = GPTIMER_COUNT_UP;        //Set counting direction to UP   
     gptimer_config.resolution_hz = TIMER_FREQUENZ;      //Set timer frequenz (to 1MHz)                                                                
     gptimer_config.intr_priority = 1;
-                                                                  
-    gptimer_alarm_config.alarm_count = TIMER_FREQUENZ/BAUD_RATE;  //Set the alarm trigger point
-    gptimer_alarm_config.flags.auto_reload_on_alarm = true;                  //Reload value upon alarm trigger
-    gptimer_alarm_config.reload_count = 0;      
 
     err = gptimer_new_timer(&gptimer_config, &gptimer);
     if (err != ESP_OK) {
@@ -240,6 +240,11 @@ void initTimer(){
     else
         ESP_LOGI(TAG, "Timer configured successfully");
 
+    //Configure the timer alarm
+    gptimer_alarm_config.alarm_count = TIMER_FREQUENZ/BAUD_RATE;    //Set the alarm trigger point
+    gptimer_alarm_config.flags.auto_reload_on_alarm = true;         //Reload value upon alarm trigger
+    gptimer_alarm_config.reload_count = 0;      
+
     err = gptimer_set_alarm_action(gptimer, &gptimer_alarm_config);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set alarm action");
@@ -247,10 +252,10 @@ void initTimer(){
     else
         ESP_LOGI(TAG, "Alarm action set successfully");
 
+    //Register event callback for timer
     gptimer_event_callbacks_t cbs = 
     {
-        .on_alarm = transmit_bit_on_timer_alarm, // register user callback
-        
+        .on_alarm = transmit_bit_on_timer_alarm, // register callback
     };
 
     err = gptimer_register_event_callbacks(gptimer, &cbs, NULL);
@@ -260,6 +265,7 @@ void initTimer(){
     else
         ESP_LOGI(TAG, "Timer event callback registered successfully");
 
+    //Enable the timer
     err = gptimer_enable(gptimer);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to enable the timer in DALI init function");

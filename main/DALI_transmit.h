@@ -25,8 +25,6 @@ enum State {
 
 void init_DALI_transmit();
 void sendDALI_TX(uint16_t cmd);
-uint32_t manchesterEncode(uint16_t data);
-uint8_t percentToDalimapping(uint8_t input);
 
 extern int incrementer;;
 
