@@ -27,7 +27,21 @@
         "gptimer.h": "c",
         "timer.h": "c",
         "task.h": "c",
-        "esp_flash.h": "c"
+        "esp_flash.h": "c",
+        "*.inc": "c",
+        "array": "c",
+        "*.tcc": "c",
+        "string": "c",
+        "vector": "c",
+        "string_view": "c",
+        "functional": "c",
+        "istream": "c",
+        "limits": "c",
+        "ostream": "c",
+        "ratio": "c",
+        "stop_token": "c",
+        "streambuf": "c",
+        "tuple": "c"
     },
     "idf.flashType": "UART"
 }

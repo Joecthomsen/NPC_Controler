@@ -3,20 +3,66 @@
 #include "driver/gptimer.h"
 #include "esp_log.h"
 
-gptimer_handle_t gptimer;   //Init the timer
-gptimer_config_t gptimer_config;    //Init timer config struct
-gpio_config_t io_config;
+int incrementer = 0;
 
 bool manchesterClock = 1;
 enum State state = START_BIT;
 int8_t counter = 0;
 uint32_t dataToTransmit = 0;
-uint16_t data = 0xF0F5;
-
+//uint16_t data = 0xF0F5;
 esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
-//constexpr EndpointId kLightEndpointId = 1;
+bool timerOn = false;
 
+gptimer_handle_t gptimer;   //Init the timer
+gptimer_config_t gptimer_config;    //Init timer config struct
+gpio_config_t io_config;
+
+//Prototypes
+void initGPIO();
+void initTimer();
+
+/**
+ * @brief Initialize the DALI transmitter.
+ *
+ * This function initializes the peripherals required for the DALI transmitter to operate, 
+ * including GPIO and the general-purpose timer. It also enables the timer to make it ready for use.
+ *
+ * @param void
+ * @return void
+ */
+void init_DALI_transmit(){
+    initGPIO();     // Initialize the GPIO configuration
+    initTimer();    // Initialize the timer configuration
+};
+
+/**
+ * @brief Initiate the transmission of a DALI data frame.
+ *
+ * This function initiates the transmission of a DALI data frame by starting a general-purpose timer,
+ * which in turn triggers the transmit_bit_on_timer_alarm() function. Additionally, this function
+ * handles the Manchester encoding process and stores the encoded data.
+ *
+ * @param cmd The data frame to transmit.
+ * @return void
+ */
+void sendDALI_TX(uint16_t cmd){
+    
+    dataToTransmit = manchesterEncode(cmd);
+    if(!timerOn){
+        err = gptimer_start(gptimer);
+        timerOn = true;
+    }
+
+    uint64_t timerVal;
+    gptimer_get_raw_count(gptimer, &timerVal);
+    for(int i=31; i>=0; i--) {
+        int bit = (dataToTransmit >> i) & 1;
+        printf("%d", bit); 
+    }
+    printf("\n");
+    
+}
 
 /**
  * @brief Transmit a single bit on timer alarm.
@@ -32,12 +78,7 @@ static const char * TAG = "DALI TRANSMIT";
  */
 static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx)
 {
-    //err = gptimer_stop(gptimer);
-    gptimer_set_raw_count(gptimer, 0);
-    printf("Interrupt triggered\n");
-
-    return true;
-   /*  bool returnState = true;
+    bool returnState = true;
     switch (state)
     {
         case START_BIT:
@@ -82,43 +123,84 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
             }
             break;
         case STOP_BIT:
-            err = gpio_set_level(GPIO_PIN, DALI_IDLE_VALUE);
-            err = gptimer_stop(gptimer);
-            if (err != ESP_OK) {
-                ESP_LOGE(TAG, "Failed to send stop timer after transmitting frame");
-                returnState = false;
+            if(counter == 0){
+                err = gpio_set_level(GPIO_PIN, DALI_IDLE_VALUE);
+                counter++;
             }
-            err = gptimer_set_raw_count(gptimer, TIMER_START_VALUE);
-            counter = 0;
-            state = START_BIT;
+            else if(counter < 3){
+                counter++;
+            }
+            else{
+                err = gptimer_stop(gptimer);
+                if (err != ESP_OK) {
+                    ESP_LOGE(TAG, "Failed to send stop timer after transmitting frame");
+                    returnState = false;
+                }
+                state = START_BIT;
+                timerOn = false;
+                incrementer++;
+                
+            }
             break;
-        }
-    return returnState;     */
+    };
+    return returnState;    
 }
 
 
+/**
+ * @brief Translate a data frame into Manchester-encoded format.
+ *
+ * This function translates a 16-bit data frame into a 32-bit Manchester-encoded data frame by encoding
+ * each bit as either '0b01' or '0b10'.
+ *
+ * @param data The 16-bit data frame to be translated.
+ * @return The resulting Manchester-encoded 32-bit data frame.
+ */
+uint32_t manchesterEncode(uint16_t data) {
+
+    uint32_t manchesterEncodedData = 0; 
+
+    for (int i = 0; i < 16; i++) {      // Convert DALI value to Manchester-encoded data
+        uint8_t bit = (data >> i) & 1;
+        if (bit == 1) {
+            manchesterEncodedData |= (MANCHESTER_ENCODED_0 << (2 * i));  // '1' is encoded as 01
+        } else {
+            manchesterEncodedData |= (MANCHESTER_ENCODED_1 << (2 * i));  // '0' is encoded as 10
+        }
+    }
+    return manchesterEncodedData;
+}
 
 /**
- * @brief Initialize the DALI transmitter.
+ * @brief Map a percentage value (1-100) to the DALI brightness range (1-254).
  *
- * This function initializes the peripherals required for the DALI transmitter to operate, 
- * including GPIO and the general-purpose timer. It also enables the timer to make it ready for use.
+ * This function maps a percentage input to the DALI brightness range.
  *
- * @param void
- * @return void
+ * @param input The 8-bit data frame representing the percentage (1-100).
+ * @return The resulting 8-bit DALI brightness mapping (1-254).
+ * @deprecated this function is deprecated and will be removed/edit in a future version.
+ * @attention this function is intended to use with Matter project. 
  */
-void init_DALI_transmit(){
+uint8_t percentToDalimapping(uint8_t input){
 
-/*     ESP_LOGI(TAG, "Writing to Current Level cluster");
-    status = Clusters::LevelControl::Attributes::CurrentLevel::Set(kLightEndpointId, 100); 
+    /* 
+        Calculate the slope (a) of the linear equation that maps the input range to the output range:
+            a = (delta y) / (delta x) = 253 / 100 = 2,53
 
-    if (status != EMBER_ZCL_STATUS_SUCCESS)
-    {
-        ESP_LOGE(TAG, "Updating level cluster failed: %x", status);
-    }
+        Calculate the intercept (b) of the linear equation:
+            y has to be 1, when x is 0, therefor: 1 = 2.53x + b  =  b = 1
+        Now, for any input value (x) within the range [1, 100], we can calculate the corresponding output value (y) using the linear equation:
+            y = a * x + b   =   y = 2.54 * x + 1 
     */
+    //TODO Replace this with a lookup table
+    if(input > 100){
+        input = 100;
+    }
+    return 2.54 * input + 1;
+}
 
-    // Initialize the GPIO configuration
+void initGPIO(){
+
     io_config.intr_type = GPIO_INTR_DISABLE;
     io_config.mode = GPIO_MODE_OUTPUT;
     io_config.pin_bit_mask = (1ULL << GPIO_PIN);
@@ -138,17 +220,18 @@ void init_DALI_transmit(){
     }
     else
         ESP_LOGI(TAG, "TX pin set to LOW successfully");
+}
 
+void initTimer(){
     gptimer_alarm_config_t gptimer_alarm_config;    //Init alarm config struct
-
     gptimer_config.clk_src = GPTIMER_CLK_SRC_DEFAULT;   //Set clock source to default   
     gptimer_config.direction = GPTIMER_COUNT_UP;        //Set counting direction to UP   
     gptimer_config.resolution_hz = TIMER_FREQUENZ;      //Set timer frequenz (to 1MHz)                                                                
-    gptimer_config.intr_priority = 1;                              
-                                                       
-    gptimer_alarm_config.alarm_count = 10000000;//TIMER_FREQUENZ/BAUD_RATE;  //Set the alarm trigger point
-    gptimer_alarm_config.reload_count = 0; //Reload value upon alarm trigger
-    gptimer_alarm_config.flags.auto_reload_on_alarm = 1;         
+    gptimer_config.intr_priority = 1;
+                                                                  
+    gptimer_alarm_config.alarm_count = TIMER_FREQUENZ/BAUD_RATE;  //Set the alarm trigger point
+    gptimer_alarm_config.flags.auto_reload_on_alarm = true;                  //Reload value upon alarm trigger
+    gptimer_alarm_config.reload_count = 0;      
 
     err = gptimer_new_timer(&gptimer_config, &gptimer);
     if (err != ESP_OK) {
@@ -167,6 +250,7 @@ void init_DALI_transmit(){
     gptimer_event_callbacks_t cbs = 
     {
         .on_alarm = transmit_bit_on_timer_alarm, // register user callback
+        
     };
 
     err = gptimer_register_event_callbacks(gptimer, &cbs, NULL);
@@ -180,86 +264,6 @@ void init_DALI_transmit(){
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to enable the timer in DALI init function");
     }
-    else{
-        ESP_LOGI(TAG, "Timer enabled in DALI_transmit_init() function");
-    }
-    err = gptimer_start(gptimer);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to start the timer");
-    }
     else
-        ESP_LOGI(TAG, "Timer started successfully");
-};
-
-/**
- * @brief Initiate the transmission of a DALI data frame.
- *
- * This function initiates the transmission of a DALI data frame by starting a general-purpose timer,
- * which in turn triggers the transmit_bit_on_timer_alarm() function. Additionally, this function
- * handles the Manchester encoding process and stores the encoded data.
- *
- * @param cmd The data frame to transmit.
- * @return void
- */
-void sendDALI_TX(uint16_t cmd){
-    
-    dataToTransmit = manchesterEncode(cmd);
-
-    uint64_t time;
-    err = gptimer_get_raw_count(gptimer, &time); 
-    ESP_LOGI(TAG, "Current timer value: %llu", time);
-}
-
-
-/**
- * @brief Translate a data frame into Manchester-encoded format.
- *
- * This function translates a 16-bit data frame into a 32-bit Manchester-encoded data frame by encoding
- * each bit as either '0b01' or '0b10'.
- *
- * @param data The 16-bit data frame to be translated.
- * @return The resulting Manchester-encoded 32-bit data frame.
- */
-uint32_t manchesterEncode(uint16_t data) {
-
-    uint32_t manchesterEncodedData = 0; 
-
-    // Convert DALI value to Manchester-encoded data
-    for (int i = 0; i < 16; i++) {
-        uint8_t bit = (data >> i) & 1;
-        if (bit == 1) {
-            manchesterEncodedData |= (MANCHESTER_ENCODED_0 << (2 * i));  // '1' is encoded as 01
-             //ESP_LOGE(TAG, "01");
-        } else {
-            manchesterEncodedData |= (MANCHESTER_ENCODED_1 << (2 * i));  // '0' is encoded as 10
-            //ESP_LOGE(TAG, "10");
-        }
-    }
-    return manchesterEncodedData;
-}
-
-/**
- * @brief Map a percentage value (1-100) to the DALI brightness range (1-254).
- *
- * This function maps a percentage input to the DALI brightness range.
- *
- * @param input The 8-bit data frame representing the percentage (1-100).
- * @return The resulting 8-bit DALI brightness mapping (1-254).
- */
-uint8_t percentToDalimapping(uint8_t input){
-
-    /* 
-        Calculate the slope (a) of the linear equation that maps the input range to the output range:
-            a = (delta y) / (delta x) = 253 / 100 = 2,53
-
-        Calculate the intercept (b) of the linear equation:
-            y has to be 1, when x is 0, therefor: 1 = 2.53x + b  =  b = 1
-        Now, for any input value (x) within the range [1, 100], we can calculate the corresponding output value (y) using the linear equation:
-            y = a * x + b   =   y = 2.54 * x + 1 
-    */
-    //TODO Replace this with a lookup table
-    if(input > 100){
-        input = 100;
-    }
-    return 2.54 * input + 1;
+        ESP_LOGI(TAG, "Timer enabled in DALI_transmit_init() function");
 }
