@@ -1,3 +1,5 @@
+#pragma once
+
 #include <inttypes.h>
 
 int compareWithESP32(uint64_t key);

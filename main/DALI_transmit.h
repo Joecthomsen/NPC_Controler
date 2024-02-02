@@ -1,5 +1,5 @@
+#pragma once
 
-//#include <cstring>
 #include "driver/gpio.h"
 #include "driver/gptimer_types.h"
 #include "driver/gptimer.h"

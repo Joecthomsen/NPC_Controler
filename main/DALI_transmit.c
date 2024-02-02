@@ -12,6 +12,7 @@ uint32_t dataToTransmit = 0;
 esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
 bool timerOn = false;
+uint32_t rx_data_buffer; 
 
 gptimer_handle_t gptimer;   //Init the timer
 gptimer_config_t gptimer_config;    //Init timer config struct
@@ -62,6 +63,17 @@ void sendDALI_TX(uint16_t cmd){
         printf("%d", bit); 
     }
     printf("\n");
+}
+
+void receiveDALI_RX(){
+
+}
+
+static bool ISR_receive_message(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
+    
+    uint32_t rx_bit = gpio_get_level(GPIO_RX_PIN);
+    rx_data_buffer = (rx_data_buffer << 1) | rx_bit; 
+    return true;
 }
 
 /**
@@ -211,7 +223,7 @@ void initGPIO(){
 
     //Configure the GPIO pin RX
     gpio_config_t io_config_rx = {
-        .intr_type = GPIO_INTR_DISABLE,
+        .intr_type = GPIO_INTR_ANYEDGE,
         .mode = GPIO_MODE_OUTPUT,
         .pin_bit_mask = (1ULL << GPIO_PIN_TX),
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
