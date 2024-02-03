@@ -7,6 +7,8 @@
 
 #define GPIO_PIN_TX GPIO_NUM_2
 #define GPIO_PIN_RX GPIO_NUM_3
+#define HIGH 1
+#define LOW 0
 
 #define TIMER_GROUP    TIMER_GROUP_0
 #define TIMER_NUMBER   TIMER_0

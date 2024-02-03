@@ -41,7 +41,9 @@
         "ratio": "c",
         "stop_token": "c",
         "streambuf": "c",
-        "tuple": "c"
+        "tuple": "c",
+        "dali_commands.h": "c",
+        "dali_addressing.h": "c"
     },
     "idf.flashType": "UART"
 }
