@@ -71,7 +71,7 @@ void receiveDALI_RX(){
 
 static bool ISR_receive_message(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
     
-    uint32_t rx_bit = gpio_get_level(GPIO_RX_PIN);
+    uint32_t rx_bit = gpio_get_level(GPIO_PIN_RX);
     rx_data_buffer = (rx_data_buffer << 1) | rx_bit; 
     return true;
 }

@@ -1,14 +1,15 @@
 #include "DALI_addressing.h"
+#include <math.h>
 
 
 /**
- * @brief Mock function for comparison with your ESP32 response
+ * @brief Mock function for comparison with driver response
  *
  * @param addressSearch The address to search for
  * @return 1 if the address is found, 0 otherwise
  * @attention This function should be replaced with the actual implementation of the ESP32 and DALI driver
  */
-int compareWithESP32(uint64_t addressSearch) {
+int compareWithDriver(uint64_t addressSearch) {
     // Mock implementation: Return 1 for keys greater than or equal to a threshold
     return addressSearch >= 987654 ? 1 : 0;
 }
@@ -21,9 +22,8 @@ int compareWithESP32(uint64_t addressSearch) {
  */
 uint64_t findLowestKey(uint64_t start, uint64_t end) {
     while (start < end) {
-        uint64_t mid = start + (end - start) / 2;
-
-        if (compareWithESP32(mid)) {
+        uint64_t mid = floor(start + (end - start) / 2);
+        if (compareWithDriver(mid)) {
             end = mid;  // Continue searching in the lower half
         } else {
             start = mid + 1;  // Search in the upper half

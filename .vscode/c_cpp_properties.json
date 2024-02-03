@@ -11,14 +11,14 @@
                 "${config:idf.espAdfPathWin}/components/**",
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/components/components/esp_driver_gpio/include",
-                "${workspaceFolder}/main/custom_components/*",
                 "${workspaceFolder}/components/components/xtensa/include",
-                "${workspaceFolder}/main/custom_components/",
                 "${workspaceFolder}/build/config/",
                 "${workspaceFolder}/main/**",
                 "/home/johannes/esp/esp-idf/components/esp_netif/linux/stubs/include/machine/*",
                 "/home/johannes/esp/esp-idf/components/esp_netif/linux/stubs/include",
-                "${workspaceFolder}/components/components/esp_netif/linux/stubs/include/"
+                "${workspaceFolder}/components/components/esp_netif/linux/stubs/include/",
+                "${workspaceFolder}/components/DALI_transmit/include",
+                "${workspaceFolder}/components/DALI_addressing/include"
             ],
             "browse": {
                 "path": [
