@@ -16,7 +16,7 @@
 #define TIMER_START_VALUE 0
 #define BAUD_RATE 2400
 #define TIMER_INTERVAL_US 500
-#define DALI_IDLE_VALUE 0
+#define DALI_IDLE_VALUE 1
 #define MANCHESTER_ENCODED_0 0b10   //This is inverted, as the entire signal is inverted
 #define MANCHESTER_ENCODED_1 0b01   //This is inverted, as the entire signal is inverted
 

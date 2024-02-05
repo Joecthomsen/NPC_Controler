@@ -40,7 +40,6 @@ void taskTwo(void *parameter){
 }
 
 
-
 void app_main(void)
 {
     init_DALI_transmit();
