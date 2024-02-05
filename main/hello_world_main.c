@@ -24,8 +24,7 @@ void taskOne(void *parameter){
         printf("Task one...\n");
         vTaskDelay(15000/portTICK_PERIOD_MS);
         vTaskDelete(NULL);
-    }
-        
+    }    
 }
 
 void taskTwo(void *parameter){
@@ -39,7 +38,6 @@ void taskTwo(void *parameter){
         vTaskDelay(1000/portTICK_PERIOD_MS);       
     }
 }
-
 
 
 void app_main(void)

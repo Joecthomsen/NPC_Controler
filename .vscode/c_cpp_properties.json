@@ -18,7 +18,8 @@
                 "/home/johannes/esp/esp-idf/components/esp_netif/linux/stubs/include",
                 "${workspaceFolder}/components/components/esp_netif/linux/stubs/include/",
                 "${workspaceFolder}/components/DALI_transmit/include",
-                "${workspaceFolder}/components/DALI_addressing/include"
+                "${workspaceFolder}/components/DALI_addressing/include/",
+                "${workspaceFolder}/components/DALI_commands/include/*"
             ],
             "browse": {
                 "path": [

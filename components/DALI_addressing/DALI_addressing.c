@@ -3,6 +3,21 @@
 
 
 /**
+ * @brief Check if any of the drivers on the bus are commisioned
+ * @details This function checks if any of the drivers on the bus are commisioned, by iterating all the shord addresses and return true if any response.
+ * @return true if there is any drivers on the bus commisioned, false otherwise
+ */
+bool areDriversOnBusCommisioned(){
+    uint8_t i;
+    for (i = 0; i < 256; i++){
+        if (verifyShortAddress(i)){
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
  * @brief Mock function for comparison with driver response
  *
  * @param addressSearch The address to search for
@@ -31,4 +46,9 @@ uint64_t findLowestKey(uint64_t start, uint64_t end) {
     }
 
     return start;
+}
+
+bool programShortAddress(uint64_t longAddress, uint8_t shortAddress)
+{
+    return false;
 }

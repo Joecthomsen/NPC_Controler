@@ -14,6 +14,8 @@ static const char * TAG = "DALI TRANSMIT";
 bool timerOn = false;
 uint32_t rx_data_buffer; 
 
+bool gpioTest = LOW;
+
 gptimer_handle_t gptimer;   //Init the timer
 gptimer_config_t gptimer_config;    //Init timer config struct
 
@@ -50,6 +52,12 @@ void init_DALI_transmit(){
  */
 void sendDALI_TX(uint16_t cmd){
     
+    // gpioTest = !gpioTest;
+    // gpio_set_level(GPIO_PIN_TX, gpioTest);
+    // printf("GPIO_PIN_TX: %d\n", gpioTest);
+
+    gpio_intr_disable(GPIO_PIN_RX);
+
     dataToTransmit = manchesterEncode(cmd);
     if(!timerOn){
         err = gptimer_start(gptimer);
@@ -95,7 +103,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
     {
         case START_BIT:
             if(counter < 1){
-                err = gpio_set_level(GPIO_PIN_TX, 1);
+                err = gpio_set_level(GPIO_PIN_TX, LOW);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send start bit");
                     returnState = false;
@@ -103,7 +111,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 counter++;
             }
             else{
-                err = gpio_set_level(GPIO_PIN_TX, 0);
+                err = gpio_set_level(GPIO_PIN_TX, HIGH);
                 manchesterClock = 0;
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send start bit");
@@ -150,7 +158,9 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 }
                 state = START_BIT;
                 timerOn = false;
-                incrementer++;                
+                counter = 0;
+                incrementer++;
+                gpio_intr_enable(GPIO_PIN_TX);                
             }
             break;
     };
@@ -174,9 +184,9 @@ uint32_t manchesterEncode(uint16_t data) {
     for (int i = 0; i < 16; i++) {      // Convert DALI value to Manchester-encoded data
         uint8_t bit = (data >> i) & 1;
         if (bit == 1) {
-            manchesterEncodedData |= (MANCHESTER_ENCODED_0 << (2 * i));  // '1' is encoded as 01
+            manchesterEncodedData |= (MANCHESTER_ENCODED_1 << (2 * i));  // '1' is encoded as 01
         } else {
-            manchesterEncodedData |= (MANCHESTER_ENCODED_1 << (2 * i));  // '0' is encoded as 10
+            manchesterEncodedData |= (MANCHESTER_ENCODED_0 << (2 * i));  // '0' is encoded as 10
         }
     }
     return manchesterEncodedData;
@@ -223,9 +233,9 @@ void initGPIO(){
 
     //Configure the GPIO pin RX
     gpio_config_t io_config_rx = {
-        .intr_type = GPIO_INTR_ANYEDGE,
+        .intr_type = GPIO_INTR_NEGEDGE,
         .mode = GPIO_MODE_OUTPUT,
-        .pin_bit_mask = (1ULL << GPIO_PIN_TX),
+        .pin_bit_mask = (1ULL << GPIO_PIN_RX),
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
         .pull_up_en = GPIO_PULLUP_DISABLE,
     };
@@ -235,7 +245,7 @@ void initGPIO(){
         ESP_LOGE(TAG, "Failed to configure GPIO pin");
     }
     else
-        ESP_LOGI(TAG, "GPIO pin configured successfully");
+        ESP_LOGI(TAG, "GPIO TX pin configured successfully");
 
     err = gpio_set_level(GPIO_PIN_TX, DALI_IDLE_VALUE);     // Set the GPIO TX pin to 0 (LOW) as the DALI standby requires
     if (err != ESP_OK) {
@@ -249,7 +259,7 @@ void initGPIO(){
         ESP_LOGE(TAG, "Failed to configure GPIO pin");
     }
     else
-        ESP_LOGI(TAG, "GPIO pin configured successfully");
+        ESP_LOGI(TAG, "GPIO RX pin configured successfully");
     err = gpio_set_level(GPIO_PIN_RX, DALI_IDLE_VALUE);     // Set the GPIO RX pin to 0 (LOW) as the DALI standby requires
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set RX pin to LOW");
