@@ -19,6 +19,7 @@
 #define DALI_IDLE_VALUE 1
 #define MANCHESTER_ENCODED_0 0b10   //This is inverted, as the entire signal is inverted
 #define MANCHESTER_ENCODED_1 0b01   //This is inverted, as the entire signal is inverted
+#define TIMER_RX_OFFSET (TIMER_FREQUENZ/BAUD_RATE)*0.25 //Offset in order to read the RX data at the around 75% of the encoding
 
 enum State {
     START_BIT,
@@ -29,6 +30,7 @@ enum State {
 void init_DALI_transmit();
 void sendDALI_TX(uint16_t cmd);
 
-extern int incrementer;;
+extern int incrementer;
+extern int rx_data_buffer[32]; 
 
  

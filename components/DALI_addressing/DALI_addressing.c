@@ -8,12 +8,12 @@
  * @return true if there is any drivers on the bus commisioned, false otherwise
  */
 bool areDriversOnBusCommisioned(){
-    uint8_t i;
-    for (i = 0; i < 256; i++){
-        if (verifyShortAddress(i)){
-            return true;
-        }
-    }
+    //uint8_t i;
+    // for (i = 0; i < 256; i++){
+    //     if (verifyShortAddress(i)){
+    //         return true;
+    //     }
+    // }
     return false;
 }
 

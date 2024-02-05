@@ -43,7 +43,9 @@
         "streambuf": "c",
         "tuple": "c",
         "dali_commands.h": "c",
-        "dali_addressing.h": "c"
+        "dali_addressing.h": "c",
+        "esp_intr_alloc.h": "c",
+        "regex": "c"
     },
     "idf.flashType": "UART"
 }
