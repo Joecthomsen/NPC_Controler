@@ -12,12 +12,15 @@ uint32_t dataToTransmit = 0;
 esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
 bool timerOn = false;
-uint32_t rx_data_buffer; 
+int rx_data_buffer[32] = {8}; 
 
 bool gpioTest = LOW;
 
-gptimer_handle_t gptimer;   //Init the timer
-gptimer_config_t gptimer_config;    //Init timer config struct
+gptimer_handle_t timer_tx;   //Init the Tx timer
+gptimer_handle_t timer_rx;   //Init the Rx timer
+gpio_isr_handle_t *handle_rx;
+
+
 
 //Prototypes
 void initGPIO();
@@ -60,12 +63,12 @@ void sendDALI_TX(uint16_t cmd){
 
     dataToTransmit = manchesterEncode(cmd);
     if(!timerOn){
-        err = gptimer_start(gptimer);
+        err = gptimer_start(timer_tx);
         timerOn = true;
     }
 
     uint64_t timerVal;
-    gptimer_get_raw_count(gptimer, &timerVal);
+    gptimer_get_raw_count(timer_tx, &timerVal);
     for(int i=31; i>=0; i--) {
         int bit = (dataToTransmit >> i) & 1;
         printf("%d", bit); 
@@ -73,14 +76,46 @@ void sendDALI_TX(uint16_t cmd){
     printf("\n");
 }
 
-void receiveDALI_RX(){
-
+void receive_dali_data(void *arg){
+    
+    gptimer_set_raw_count(timer_rx, TIMER_RX_OFFSET);
+    gptimer_start(timer_rx);
+    gpio_intr_disable(GPIO_PIN_RX);
+    incrementer += 100;
+    return;
 }
 
-static bool ISR_receive_message(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
-    
-    uint32_t rx_bit = gpio_get_level(GPIO_PIN_RX);
-    rx_data_buffer = (rx_data_buffer << 1) | rx_bit; 
+// Get function pointer  
+void (*isr_rx_handler)(void*) = receive_dali_data;
+
+
+
+static bool receive_message(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
+
+    switch (state)
+    {
+    case START_BIT:
+        state = DATA;
+        break;
+    case DATA:
+        if(counter < 32){
+            int gpioValue = gpio_get_level(GPIO_PIN_RX);
+            rx_data_buffer[counter] = gpioValue;
+            counter++;
+        }
+        else{
+            counter = 0;
+            state = STOP_BIT;
+        }
+        break;
+    case STOP_BIT:
+
+        break;
+    default:
+        gpio_intr_enable(GPIO_PIN_RX);
+        break;
+    }
+
     return true;
 }
 
@@ -151,7 +186,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 counter++;
             }
             else{
-                err = gptimer_stop(gptimer);
+                err = gptimer_stop(timer_tx);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send stop timer after transmitting frame");
                     returnState = false;
@@ -160,7 +195,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 timerOn = false;
                 counter = 0;
                 incrementer++;
-                gpio_intr_enable(GPIO_PIN_TX);                
+                gpio_intr_enable(GPIO_PIN_RX);                
             }
             break;
     };
@@ -234,10 +269,11 @@ void initGPIO(){
     //Configure the GPIO pin RX
     gpio_config_t io_config_rx = {
         .intr_type = GPIO_INTR_NEGEDGE,
-        .mode = GPIO_MODE_OUTPUT,
+        .mode = GPIO_MODE_INPUT,
         .pin_bit_mask = (1ULL << GPIO_PIN_RX),
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_up_en = GPIO_PULLUP_ENABLE,
+        
     };
 
     err = gpio_config(&io_config_tx); //Init the GPIO TX
@@ -260,62 +296,114 @@ void initGPIO(){
     }
     else
         ESP_LOGI(TAG, "GPIO RX pin configured successfully");
-    err = gpio_set_level(GPIO_PIN_RX, DALI_IDLE_VALUE);     // Set the GPIO RX pin to 0 (LOW) as the DALI standby requires
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set RX pin to LOW");
-    }
-    else
-        ESP_LOGI(TAG, "RX pin set to LOW successfully");
-    
+    // err = gpio_set_level(GPIO_PIN_RX, DALI_IDLE_VALUE);     // Set the GPIO RX pin to 0 (LOW) as the DALI standby requires
+    // if (err != ESP_OK) {
+    //     ESP_LOGE(TAG, "Failed to set RX pin to LOW");
+    // }
+    // else
+    //     ESP_LOGI(TAG, "RX pin set to LOW successfully");
 
+    err = gpio_isr_register(isr_rx_handler, NULL, 0, handle_rx); //Register the GPIO
+    if(err!= ESP_OK){
+        ESP_LOGE(TAG, "Failed to register GPIO interrupt");
+    }
+    else{
+        ESP_LOGI(TAG, "GPIO interrupt registered successfully");
+        gpio_intr_enable(GPIO_PIN_RX);
+    }        
 }
 
 void initTimer(){
 
-    //Configure the timer
-    gptimer_alarm_config_t gptimer_alarm_config;    //Init alarm config struct
-    gptimer_config.clk_src = GPTIMER_CLK_SRC_DEFAULT;   //Set clock source to default   
-    gptimer_config.direction = GPTIMER_COUNT_UP;        //Set counting direction to UP   
-    gptimer_config.resolution_hz = TIMER_FREQUENZ;      //Set timer frequenz (to 1MHz)                                                                
-    gptimer_config.intr_priority = 1;
+    //Init timer config struct - common to both timers
+    gptimer_config_t gptimer_config = {
+        .clk_src = GPTIMER_CLK_SRC_DEFAULT,   //Set clock source to default
+        .direction = GPTIMER_COUNT_UP,        //Set counting direction to UP
+        .resolution_hz = TIMER_FREQUENZ,      //Set timer frequenz (to 1MHz)
+        .intr_priority = 1,
+    };    
 
-    err = gptimer_new_timer(&gptimer_config, &gptimer);
+    err = gptimer_new_timer(&gptimer_config, &timer_tx); // Create the new Tx timer
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to configure the timer");
+        ESP_LOGE(TAG, "Failed to configure the Tx timer");
     }
     else
-        ESP_LOGI(TAG, "Timer configured successfully");
+        ESP_LOGI(TAG, "Tx timer configured successfully");
+
+    err = gptimer_new_timer(&gptimer_config, &timer_rx); // Create the new Rx timer 
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to configure the Rx timer");
+    }
+    else{
+        ESP_LOGI(TAG, "Rx timer configured successfully");
+    }
 
     //Configure the timer alarm
-    gptimer_alarm_config.alarm_count = TIMER_FREQUENZ/BAUD_RATE;    //Set the alarm trigger point
-    gptimer_alarm_config.flags.auto_reload_on_alarm = true;         //Reload value upon alarm trigger
-    gptimer_alarm_config.reload_count = 0;      
+    gptimer_alarm_config_t gptimer_alarm_config_TX = {
+        .alarm_count = TIMER_FREQUENZ/BAUD_RATE,    //Set the alarm trigger point (416)
+        .flags.auto_reload_on_alarm = true,         //Reload value upon alarm trigger
+        .reload_count = 0,
+    };
 
-    err = gptimer_set_alarm_action(gptimer, &gptimer_alarm_config);
+    gptimer_alarm_config_t gptimer_alarm_config_RX = {
+        .alarm_count = (TIMER_FREQUENZ/BAUD_RATE)*2,    //Set the alarm trigger point (416*2)
+        .flags.auto_reload_on_alarm = true,         //Reload value upon alarm trigger
+        .reload_count = 0,
+    };        
+
+    err = gptimer_set_alarm_action(timer_tx, &gptimer_alarm_config_TX);
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to set alarm action");
     }
-    else
+    else{
         ESP_LOGI(TAG, "Alarm action set successfully");
+    }
 
-    //Register event callback for timer
-    gptimer_event_callbacks_t cbs = 
+    err = gptimer_set_alarm_action(timer_rx, &gptimer_alarm_config_RX);
+    if(err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to set alarm RX action");
+    }
+    else{
+        ESP_LOGI(TAG, "RX Alarm action set successfully");
+    }
+
+    //Register event callbacks for timer
+    gptimer_event_callbacks_t callbackTransmit = 
     {
         .on_alarm = transmit_bit_on_timer_alarm, // register callback
     };
 
-    err = gptimer_register_event_callbacks(gptimer, &cbs, NULL);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to register event callback for timer");
-    }
-    else
-        ESP_LOGI(TAG, "Timer event callback registered successfully");
+    gptimer_event_callbacks_t callbackReceive =
+    {
+        .on_alarm = receive_message,
+    };
 
-    //Enable the timer
-    err = gptimer_enable(gptimer);
+    err = gptimer_register_event_callbacks(timer_tx, &callbackTransmit, NULL);
     if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to enable the timer in DALI init function");
+        ESP_LOGE(TAG, "Failed to register event callback for Tx timer");
     }
     else
-        ESP_LOGI(TAG, "Timer enabled in DALI_transmit_init() function");
+        ESP_LOGI(TAG, "Tx Timer event callback registered successfully");
+
+    err = gptimer_register_event_callbacks(timer_rx, &callbackReceive, NULL);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to register event callback for Rx timer");
+    }
+    else
+        ESP_LOGI(TAG, "Rx Timer event callback registered successfully");
+
+    //Enable the timers
+    err = gptimer_enable(timer_tx);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to enable the Tx timer in DALI init function");
+    }
+    else
+        ESP_LOGI(TAG, "Tx Timer enabled in DALI_transmit_init() function");
+
+    err = gptimer_enable(timer_rx);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to enable the Rx timer in DALI init function");
+    }
+    else
+        ESP_LOGI(TAG, "Rx Timer enabled in DALI_transmit_init() function");
 }
