@@ -38,15 +38,16 @@ void taskTwo(void *parameter){
         vTaskDelay(1000/portTICK_PERIOD_MS);
         
         printf("Load ddr1 with value\n");
-        sendDALI_TX(0xA3AA); //Query MAX level?
+        sendDALI_TX(0xA3FF);
+        //sendDALI_TX(0xA300);
         vTaskDelay(1000/portTICK_PERIOD_MS);
 
         printf("Get ddr1 %d\n", incrementer);
-        sendDALI_TX(0xFF98); //Query MAX level?
+        sendDALI_TX(0xFF98); //Query ddr1
 
         vTaskDelay(1000/portTICK_PERIOD_MS);
         printf("rx_data_buffer: ");
-        for(int i = 0; i < 32; i++) {
+        for(int i = 0; i < 8; i++) {
             printf("%d", rx_data_buffer[i]);
         }
         printf("\n");

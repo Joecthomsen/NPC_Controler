@@ -12,7 +12,10 @@ uint32_t dataToTransmit = 0;
 esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
 bool timerOn = false;
-int rx_data_buffer[32] = {8}; 
+int rx_data_buffer[8] = {0}; 
+uint64_t t; // Half period for Rx timer
+uint64_t T = 0; // Period for Rx timer
+uint64_t T_offset = 0; // Period for Rx timer storing the 3/4 value
 
 bool gpioTest = LOW;
 
@@ -76,39 +79,73 @@ void sendDALI_TX(uint16_t cmd){
     printf("\n");
 }
 
+
+/**
+ * @brief Receive the DALI data frame.
+ * 
+ * This function receives the DALI data frame by negative and positive GPIO edge interrupt.
+ * First the function is called upon the falling edge, which indicates the start of the data frame.
+ * This will trigger a timer to start, and upon the next rising edge, the timer will be stopped.
+ * The timer will then be read, and this time is then the half period (t). 
+ * The period T = 2 * t- which is then used to calculate the offset for the timer.
+ * T_offset = T * 0.75; which will be the offset for the timer.
+ * If the timer has not reached the T_offset, the function will be called again upon the next interrupt.
+ * If the timer has reached the T_offset, the GPIO level will be read, and the data will be stored in the rx_data_buffer.
+ *
+ * @param cmd uint16 data frame to transmit.
+ * @return void
+ */
 void receive_dali_data(void *arg){
-    
-    gptimer_set_raw_count(timer_rx, TIMER_RX_OFFSET);
-    gptimer_start(timer_rx);
+
     gpio_intr_disable(GPIO_PIN_RX);
-    incrementer += 100;
-    return;
-}
-
-// Get function pointer  
-void (*isr_rx_handler)(void*) = receive_dali_data;
-
-
-
-static bool receive_message(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
-
+    
     switch (state)
     {
     case START_BIT:
-        state = DATA;
-        break;
-    case DATA:
-        if(counter < 32){
-            int gpioValue = gpio_get_level(GPIO_PIN_RX);
-            rx_data_buffer[counter] = gpioValue;
+        if(counter == 0){
+            gptimer_set_raw_count(timer_rx, 0);
+            gptimer_start(timer_rx);
             counter++;
         }
         else{
+            gptimer_get_raw_count(timer_rx, &t);
+            T = t*2;
+            T_offset = T*0.75;
+            state = DATA;
             counter = 0;
-            state = STOP_BIT;
+            gptimer_set_raw_count(timer_rx, 0);
         }
+        gpio_intr_enable(GPIO_PIN_RX);
+        break;
+    case DATA:
+        uint64_t currentTime;
+        gptimer_get_raw_count(timer_rx, &currentTime);
+        if(counter < 7){            
+            if(currentTime > T_offset){
+                int gpioValue = !gpio_get_level(GPIO_PIN_RX);                
+                rx_data_buffer[counter] = gpioValue;
+                counter++;
+                gptimer_set_raw_count(timer_rx, 0);
+            }
+        }
+        else{
+            if(currentTime > T_offset){
+                int gpioValue = !gpio_get_level(GPIO_PIN_RX);                
+                rx_data_buffer[counter] = gpioValue;
+                counter++;
+                gptimer_set_raw_count(timer_rx, 0);
+                gptimer_stop(timer_rx);
+                gptimer_set_raw_count(timer_rx, 0);
+                counter = 0;
+                state = START_BIT;
+                incrementer += 10;
+            }            
+        }
+        gpio_intr_enable(GPIO_PIN_RX);
         break;
     case STOP_BIT:
+        incrementer += 10;
+        gpio_intr_enable(GPIO_PIN_RX);
 
         break;
     default:
@@ -116,8 +153,12 @@ static bool receive_message(gptimer_handle_t timer, const gptimer_alarm_event_da
         break;
     }
 
-    return true;
+    return;
 }
+
+// Get function pointer  
+void (*isr_rx_handler)(void*) = receive_dali_data;
+
 
 /**
  * @brief Transmit a single bit on timer alarm.
@@ -268,7 +309,7 @@ void initGPIO(){
 
     //Configure the GPIO pin RX
     gpio_config_t io_config_rx = {
-        .intr_type = GPIO_INTR_NEGEDGE,
+        .intr_type = GPIO_INTR_ANYEDGE,
         .mode = GPIO_MODE_INPUT,
         .pin_bit_mask = (1ULL << GPIO_PIN_RX),
         .pull_down_en = GPIO_PULLDOWN_DISABLE,
@@ -359,13 +400,13 @@ void initTimer(){
         ESP_LOGI(TAG, "Alarm action set successfully");
     }
 
-    err = gptimer_set_alarm_action(timer_rx, &gptimer_alarm_config_RX);
-    if(err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set alarm RX action");
-    }
-    else{
-        ESP_LOGI(TAG, "RX Alarm action set successfully");
-    }
+    // err = gptimer_set_alarm_action(timer_rx, &gptimer_alarm_config_RX);
+    // if(err != ESP_OK) {
+    //     ESP_LOGE(TAG, "Failed to set alarm RX action");
+    // }
+    // else{
+    //     ESP_LOGI(TAG, "RX Alarm action set successfully");
+    // }
 
     //Register event callbacks for timer
     gptimer_event_callbacks_t callbackTransmit = 
@@ -373,10 +414,10 @@ void initTimer(){
         .on_alarm = transmit_bit_on_timer_alarm, // register callback
     };
 
-    gptimer_event_callbacks_t callbackReceive =
-    {
-        .on_alarm = receive_message,
-    };
+    // gptimer_event_callbacks_t callbackReceive =
+    // {
+    //     .on_alarm = receive_message,
+    // };
 
     err = gptimer_register_event_callbacks(timer_tx, &callbackTransmit, NULL);
     if (err != ESP_OK) {
@@ -385,12 +426,12 @@ void initTimer(){
     else
         ESP_LOGI(TAG, "Tx Timer event callback registered successfully");
 
-    err = gptimer_register_event_callbacks(timer_rx, &callbackReceive, NULL);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to register event callback for Rx timer");
-    }
-    else
-        ESP_LOGI(TAG, "Rx Timer event callback registered successfully");
+    // err = gptimer_register_event_callbacks(timer_rx, &callbackReceive, NULL);
+    // if (err != ESP_OK) {
+    //     ESP_LOGE(TAG, "Failed to register event callback for Rx timer");
+    // }
+    // else
+    //     ESP_LOGI(TAG, "Rx Timer event callback registered successfully");
 
     //Enable the timers
     err = gptimer_enable(timer_tx);
