@@ -12,7 +12,7 @@ uint32_t dataToTransmit = 0;
 esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
 bool timerOn = false;
-int rx_data_buffer[32] = {0}; 
+int rx_data_buffer[32] = {8}; 
 
 bool gpioTest = LOW;
 
@@ -109,8 +109,10 @@ static bool receive_message(gptimer_handle_t timer, const gptimer_alarm_event_da
         }
         break;
     case STOP_BIT:
+
         break;
     default:
+        gpio_intr_enable(GPIO_PIN_RX);
         break;
     }
 
