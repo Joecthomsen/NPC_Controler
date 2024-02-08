@@ -24,6 +24,7 @@ bool gpioTest = LOW;
 gptimer_handle_t timer_tx;   //Init the Tx timer
 gptimer_handle_t timer_rx;   //Init the Rx timer
 gpio_isr_handle_t *handle_rx;
+int testCounter = 0;
 
 
 
@@ -59,10 +60,6 @@ void init_DALI_transmit(){
  * @return void
  */
 void sendDALI_TX(uint16_t cmd){
-    
-    // gpioTest = !gpioTest;
-    // gpio_set_level(GPIO_PIN_TX, gpioTest);
-    // printf("GPIO_PIN_TX: %d\n", gpioTest);
 
     gpio_intr_disable(GPIO_PIN_RX);
 
@@ -100,15 +97,20 @@ void sendDALI_TX(uint16_t cmd){
 void receive_dali_data(void *arg){
 
     gpio_intr_disable(GPIO_PIN_RX);
-    
+    //rx_data_buffer[testCounter] = gpio_get_level(GPIO_PIN_RX);
+    //testCounter++;
     switch (stateRx)
     {
     case START_BIT:
         if(counter == 0){
             gptimer_set_raw_count(timer_rx, 0);
             if(!timerOnRx){
+                //incrementer++;
                 err = gptimer_start(timer_rx);
                 timerOnRx = true;
+            }
+            else{
+                //incrementer += 10;
             }            
             counter++;
         }
@@ -118,29 +120,29 @@ void receive_dali_data(void *arg){
             T_offset = T*0.75;
             stateRx = DATA;
             counter = 0;
-            //gptimer_set_raw_count(timer_rx, 0);
+            gptimer_set_raw_count(timer_rx, 0);
         }
         break;
     case DATA:
         uint64_t currentTime;
         gptimer_get_raw_count(timer_rx, &currentTime);
+        int gpioValue = !gpio_get_level(GPIO_PIN_RX);
         if(counter < 7){            
-            if(currentTime > T_offset){
-                int gpioValue = !gpio_get_level(GPIO_PIN_RX);                
+            if(currentTime > T_offset){             
                 rx_data_buffer[counter] = gpioValue;
                 counter++;
                 gptimer_set_raw_count(timer_rx, 0);
+                //incrementer++;
             }
         }
         else{
-            if(currentTime > T_offset){
-                int gpioValue = !gpio_get_level(GPIO_PIN_RX);                
+            if(currentTime > T_offset){          
                 rx_data_buffer[counter] = gpioValue;
                 counter++;
-                gptimer_set_raw_count(timer_rx, 0);
+                //gptimer_set_raw_count(timer_rx, 0);
                 gptimer_stop(timer_rx);
                 timerOnRx = false;
-                gptimer_set_raw_count(timer_rx, 0);
+                //gptimer_set_raw_count(timer_rx, 0);
                 counter = 0;
                 stateRx = STOP_BIT;
                 //incrementer += 1;
@@ -160,11 +162,12 @@ void receive_dali_data(void *arg){
         }        
         break;
     default:
-        gpio_intr_enable(GPIO_PIN_RX);
         break;
     }
+
     gpio_intr_enable(GPIO_PIN_RX);
     return;
+//    incrementer++;
 }
 
 // Get function pointer  
@@ -379,7 +382,7 @@ void initTimer(){
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,   //Set clock source to default
         .direction = GPTIMER_COUNT_UP,        //Set counting direction to UP
         .resolution_hz = TIMER_FREQUENZ,      //Set timer frequenz (to 1MHz)
-        .intr_priority = 1,
+        .intr_priority = 0,
     };       
 
     err = gptimer_new_timer(&gptimer_config_tx, &timer_tx); // Create the new Tx timer
@@ -402,12 +405,6 @@ void initTimer(){
         .flags.auto_reload_on_alarm = true,         //Reload value upon alarm trigger
         .reload_count = 0,
     };
-
-    // gptimer_alarm_config_t gptimer_alarm_config_RX = {
-    //     .alarm_count = (TIMER_FREQUENZ/BAUD_RATE)*2,    //Set the alarm trigger point (416*2)
-    //     .flags.auto_reload_on_alarm = true,         //Reload value upon alarm trigger
-    //     .reload_count = 0,
-    // };        
 
     err = gptimer_set_alarm_action(timer_tx, &gptimer_alarm_config_TX);
     if (err != ESP_OK) {
