@@ -7,11 +7,13 @@ int incrementer = 0;
 
 bool manchesterClock = 1;
 enum State state = START_BIT;
+enum State stateRx = START_BIT;
 int8_t counter = 0;
 uint32_t dataToTransmit = 0;
 esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
 bool timerOn = false;
+bool timerOnRx = false;
 int rx_data_buffer[8] = {0}; 
 uint64_t t; // Half period for Rx timer
 uint64_t T = 0; // Period for Rx timer
@@ -99,23 +101,25 @@ void receive_dali_data(void *arg){
 
     gpio_intr_disable(GPIO_PIN_RX);
     
-    switch (state)
+    switch (stateRx)
     {
     case START_BIT:
         if(counter == 0){
             gptimer_set_raw_count(timer_rx, 0);
-            gptimer_start(timer_rx);
+            if(!timerOnRx){
+                err = gptimer_start(timer_rx);
+                timerOnRx = true;
+            }            
             counter++;
         }
         else{
             gptimer_get_raw_count(timer_rx, &t);
             T = t*2;
             T_offset = T*0.75;
-            state = DATA;
+            stateRx = DATA;
             counter = 0;
-            gptimer_set_raw_count(timer_rx, 0);
+            //gptimer_set_raw_count(timer_rx, 0);
         }
-        gpio_intr_enable(GPIO_PIN_RX);
         break;
     case DATA:
         uint64_t currentTime;
@@ -135,24 +139,31 @@ void receive_dali_data(void *arg){
                 counter++;
                 gptimer_set_raw_count(timer_rx, 0);
                 gptimer_stop(timer_rx);
+                timerOnRx = false;
                 gptimer_set_raw_count(timer_rx, 0);
                 counter = 0;
-                state = START_BIT;
-                incrementer += 10;
+                stateRx = STOP_BIT;
+                //incrementer += 1;
             }            
         }
-        gpio_intr_enable(GPIO_PIN_RX);
+        //gpio_intr_enable(GPIO_PIN_RX);
         break;
     case STOP_BIT:
-        incrementer += 10;
-        gpio_intr_enable(GPIO_PIN_RX);
-
+        if(counter < 0){
+            counter++;
+        }
+        else{
+            //gpio_intr_enable(GPIO_PIN_RX);
+            stateRx = START_BIT;
+            counter = 0;
+            //incrementer += 1;
+        }        
         break;
     default:
         gpio_intr_enable(GPIO_PIN_RX);
         break;
     }
-
+    gpio_intr_enable(GPIO_PIN_RX);
     return;
 }
 
@@ -235,7 +246,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 state = START_BIT;
                 timerOn = false;
                 counter = 0;
-                incrementer++;
+                //incrementer++;
                 gpio_intr_enable(GPIO_PIN_RX);                
             }
             break;
@@ -357,21 +368,28 @@ void initGPIO(){
 void initTimer(){
 
     //Init timer config struct - common to both timers
-    gptimer_config_t gptimer_config = {
+    gptimer_config_t gptimer_config_tx = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,   //Set clock source to default
         .direction = GPTIMER_COUNT_UP,        //Set counting direction to UP
         .resolution_hz = TIMER_FREQUENZ,      //Set timer frequenz (to 1MHz)
         .intr_priority = 1,
-    };    
+    }; 
 
-    err = gptimer_new_timer(&gptimer_config, &timer_tx); // Create the new Tx timer
+    gptimer_config_t gptimer_config_rx = {
+        .clk_src = GPTIMER_CLK_SRC_DEFAULT,   //Set clock source to default
+        .direction = GPTIMER_COUNT_UP,        //Set counting direction to UP
+        .resolution_hz = TIMER_FREQUENZ,      //Set timer frequenz (to 1MHz)
+        .intr_priority = 1,
+    };       
+
+    err = gptimer_new_timer(&gptimer_config_tx, &timer_tx); // Create the new Tx timer
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to configure the Tx timer");
     }
     else
         ESP_LOGI(TAG, "Tx timer configured successfully");
 
-    err = gptimer_new_timer(&gptimer_config, &timer_rx); // Create the new Rx timer 
+    err = gptimer_new_timer(&gptimer_config_rx, &timer_rx); // Create the new Rx timer 
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to configure the Rx timer");
     }
@@ -379,18 +397,17 @@ void initTimer(){
         ESP_LOGI(TAG, "Rx timer configured successfully");
     }
 
-    //Configure the timer alarm
     gptimer_alarm_config_t gptimer_alarm_config_TX = {
         .alarm_count = TIMER_FREQUENZ/BAUD_RATE,    //Set the alarm trigger point (416)
         .flags.auto_reload_on_alarm = true,         //Reload value upon alarm trigger
         .reload_count = 0,
     };
 
-    gptimer_alarm_config_t gptimer_alarm_config_RX = {
-        .alarm_count = (TIMER_FREQUENZ/BAUD_RATE)*2,    //Set the alarm trigger point (416*2)
-        .flags.auto_reload_on_alarm = true,         //Reload value upon alarm trigger
-        .reload_count = 0,
-    };        
+    // gptimer_alarm_config_t gptimer_alarm_config_RX = {
+    //     .alarm_count = (TIMER_FREQUENZ/BAUD_RATE)*2,    //Set the alarm trigger point (416*2)
+    //     .flags.auto_reload_on_alarm = true,         //Reload value upon alarm trigger
+    //     .reload_count = 0,
+    // };        
 
     err = gptimer_set_alarm_action(timer_tx, &gptimer_alarm_config_TX);
     if (err != ESP_OK) {
