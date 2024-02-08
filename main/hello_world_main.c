@@ -30,23 +30,50 @@ void taskOne(void *parameter){
 void taskTwo(void *parameter){
     while (true)
     {
+        printf("Turn light off...\n");
         sendDALI_TX(0xFE00);
-        printf("Turn off %d\n", incrementer);
-        vTaskDelay(1000/portTICK_PERIOD_MS);  
-        sendDALI_TX(0xFEFE);
-        printf("Turn on %d\n", incrementer);
         vTaskDelay(1000/portTICK_PERIOD_MS);
-        
-        printf("Load ddr1 with value\n");
+        printf("Turn light on...\n");
+        sendDALI_TX(0xFEFE);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+
+        printf("Load ddr1 with value F0\n");
+        sendDALI_TX(0xA3F0);
+        //sendDALI_TX(0xA300);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        printf("Get DATA %d\n", incrementer);
+        sendDALI_TX(0xFF98); //Query ddr1
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        printf("rx_data_buffer 1: ");
+        for(int i = 0; i < 8; i++) {
+            printf("%d", rx_data_buffer[i]);
+        }
+        printf("\n");
+
+
+        printf("Load ddr1 with value FF\n");
         sendDALI_TX(0xA3FF);
         //sendDALI_TX(0xA300);
         vTaskDelay(1000/portTICK_PERIOD_MS);
-
-        printf("Get ddr1 %d\n", incrementer);
+        printf("Get DATA %d\n", incrementer);
         sendDALI_TX(0xFF98); //Query ddr1
-
         vTaskDelay(1000/portTICK_PERIOD_MS);
-        printf("rx_data_buffer: ");
+        printf("rx_data_buffer 2: ");
+        for(int i = 0; i < 8; i++) {
+            printf("%d", rx_data_buffer[i]);
+        }
+        printf("\n");
+
+
+        
+        printf("Load ddr1 with value 00\n");
+        sendDALI_TX(0xA300);
+        //sendDALI_TX(0xA300);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        printf("Get DATA %d\n", incrementer);
+        sendDALI_TX(0xFF98); //Query ddr1
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        printf("rx_data_buffer 3: ");
         for(int i = 0; i < 8; i++) {
             printf("%d", rx_data_buffer[i]);
         }
