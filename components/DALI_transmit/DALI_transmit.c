@@ -18,13 +18,15 @@ int rx_data_buffer[8] = {0};
 uint64_t t; // Half period for Rx timer
 uint64_t T = 0; // Period for Rx timer
 uint64_t T_offset = 0; // Period for Rx timer storing the 3/4 value
+uint64_t currentTime;
+
 
 bool gpioTest = LOW;
 
 gptimer_handle_t timer_tx;   //Init the Tx timer
 gptimer_handle_t timer_rx;   //Init the Rx timer
 gpio_isr_handle_t *handle_rx;
-int testCounter = 0;
+int totalRxInterrupt = 0;
 
 
 
@@ -96,68 +98,64 @@ void sendDALI_TX(uint16_t cmd){
  */
 void receive_dali_data(void *arg){
 
+    gptimer_get_raw_count(timer_rx, &currentTime);
+
     gpio_intr_disable(GPIO_PIN_RX);
     //rx_data_buffer[testCounter] = gpio_get_level(GPIO_PIN_RX);
     //testCounter++;
+    totalRxInterrupt++;
     switch (stateRx)
     {
     case START_BIT:
         if(counter == 0){
             gptimer_set_raw_count(timer_rx, 0);
-            if(!timerOnRx){
+            //if(!timerOnRx){
                 //incrementer++;
                 err = gptimer_start(timer_rx);
-                timerOnRx = true;
-            }
-            else{
-                //incrementer += 10;
-            }            
+              //  timerOnRx = true;
+            //}       
             counter++;
         }
         else{
-            gptimer_get_raw_count(timer_rx, &t);
-            T = t*2;
-            T_offset = T*0.75;
+            T = currentTime*2;
+            T_offset = currentTime*0.75;
             stateRx = DATA;
             counter = 0;
             gptimer_set_raw_count(timer_rx, 0);
         }
         break;
+
     case DATA:
-        uint64_t currentTime;
-        gptimer_get_raw_count(timer_rx, &currentTime);
         int gpioValue = !gpio_get_level(GPIO_PIN_RX);
-        if(counter < 7){            
+        if(counter < 7){
             if(currentTime > T_offset){             
-                rx_data_buffer[counter] = gpioValue;
+                rx_data_buffer[counter] = 8;//gpioValue;
                 counter++;
                 gptimer_set_raw_count(timer_rx, 0);
                 //incrementer++;
             }
         }
         else{
-            if(currentTime > T_offset){          
-                rx_data_buffer[counter] = gpioValue;
-                counter++;
-                //gptimer_set_raw_count(timer_rx, 0);
+            if(currentTime > T_offset){ 
+                rx_data_buffer[counter] = 9;//gpioValue;
                 gptimer_stop(timer_rx);
                 timerOnRx = false;
-                //gptimer_set_raw_count(timer_rx, 0);
                 counter = 0;
-                stateRx = STOP_BIT;
-                //incrementer += 1;
-            }            
+                stateRx = START_BIT;
+                incrementer++;
+            }                      
         }
-        //gpio_intr_enable(GPIO_PIN_RX);
         break;
+
     case STOP_BIT:
-        if(counter < 0){
-            counter++;
+        if(totalRxInterrupt < 18){
+            //counter++;
         }
         else{
             //gpio_intr_enable(GPIO_PIN_RX);
             stateRx = START_BIT;
             counter = 0;
+            totalRxInterrupt = 0;
             //incrementer += 1;
         }        
         break;
