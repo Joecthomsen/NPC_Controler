@@ -32,7 +32,7 @@ void sendDALI_TX(uint16_t cmd);
 
 extern int incrementer;
 extern int incrementer2;
-extern int rx_data_buffer[8]; 
+extern int rx_data_buffer[34]; 
 
  
 

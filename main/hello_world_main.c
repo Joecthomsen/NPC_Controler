@@ -43,7 +43,7 @@ void taskTwo(void *parameter){
 
 
         printf("Load ddr1 with value F0\n");
-        sendDALI_TX(0xA3FF);
+        sendDALI_TX(0xA3F0);
         vTaskDelay(1000/portTICK_PERIOD_MS);
         printf("Get DATA %d\n", incrementer);
         sendDALI_TX(0xFF98); //Query ddr1
@@ -53,27 +53,32 @@ void taskTwo(void *parameter){
         printf("rx_data_buffer: ");
         for(int i = 0; i < 8; i++) {
             printf("%d", rx_data_buffer[i]);
-            // printf(" : ");
         }
         printf("\n");
 
+        for(int i = 0; i < 8; i++) {
+            rx_data_buffer[i] = 8;
+        }
 
-        // printf("Load ddr1 with value FF\n");
-        // sendDALI_TX(0xA3FF);
-        // vTaskDelay(1000/portTICK_PERIOD_MS);
-        // printf("incrementer: %d\n", incrementer);
-        // printf("incrementer2: %d\n", incrementer2);
-        // sendDALI_TX(0xFF98); //Query ddr1
-        // printf("incrementer: %d\n", incrementer);
-        // printf("incrementer2: %d\n", incrementer2);
-        // vTaskDelay(1000/portTICK_PERIOD_MS);
 
-        // printf("rx_data_buffer: ");
-        // for(int i = 0; i < 8; i++) {
-        //     printf("%d", rx_data_buffer[i]);
-        //     printf(" : ");
-        // }
-        // printf("\n");
+        
+
+
+        printf("Load ddr1 with value AA\n");
+        sendDALI_TX(0xA3AA);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        printf("incrementer: %d\n", incrementer);
+        printf("incrementer2: %d\n", incrementer2);
+        sendDALI_TX(0xFF98); //Query ddr1
+        printf("incrementer: %d\n", incrementer);
+        printf("incrementer2: %d\n", incrementer2);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+
+        printf("rx_data_buffer: ");
+        for(int i = 0; i < 8; i++) {
+            printf("%d", rx_data_buffer[i]);
+        }
+        printf("\n");
 
 
         

@@ -16,7 +16,7 @@ esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
 bool timerOn = false;
 bool timerOnRx = false;
-int rx_data_buffer[8] = {0}; 
+int rx_data_buffer[34] = {0}; 
 uint64_t t; // Half period for Rx timer
 uint64_t T = 0; // Period for Rx timer
 uint64_t T_offset = 0; // Period for Rx timer storing the 3/4 value
@@ -51,6 +51,10 @@ uint8_t percentToDalimapping(uint8_t input);
 void init_DALI_transmit(){
     initGPIO();     // Initialize the GPIO configuration
     initTimer();    // Initialize the timer configuration
+
+    for(int i = 0 ; i < 34; i++){
+        rx_data_buffer[i] = 8;
+    }
 };
 
 
@@ -74,7 +78,8 @@ void receive_dali_data(void *arg){
     gptimer_get_raw_count(timer_rx, &currentTime);
 
     gpio_intr_disable(GPIO_PIN_RX);
-    //rx_data_buffer[testCounter] = gpio_get_level(GPIO_PIN_RX);
+    int gpioValue = !gpio_get_level(GPIO_PIN_RX);
+    //rx_data_buffer[totalRxInterrupt] = gpio_get_level(GPIO_PIN_RX);
     //testCounter++;
     totalRxInterrupt++;
     switch (stateRx)
@@ -83,6 +88,8 @@ void receive_dali_data(void *arg){
         if(counter == 0){
             //incrementer++;
             gptimer_set_raw_count(timer_rx, 0);
+            //rx_data_buffer[totalRxInterrupt] = currentTime;
+
             //if(!timerOnRx){
                 //incrementer++;
                 err = gptimer_start(timer_rx);
@@ -91,8 +98,9 @@ void receive_dali_data(void *arg){
             counter++;
         }
         else{
+            incrementer++;
             T = currentTime*2;
-            T_offset = currentTime*0.75;
+            T_offset = T*0.75;
             stateRx = DATA;
             counter = 0;
             gptimer_set_raw_count(timer_rx, 0);
@@ -101,36 +109,38 @@ void receive_dali_data(void *arg){
 
     case DATA:
         int gpioValue = !gpio_get_level(GPIO_PIN_RX);
-        if(counter < 7){
-            if(currentTime > T_offset){             
-                rx_data_buffer[counter] = gpioValue;
-                counter++;
-                gptimer_set_raw_count(timer_rx, 0);
-                //incrementer++;
-            }
-        }
-        else{
-            if(currentTime > T_offset){ 
-                rx_data_buffer[counter] = gpioValue;
-                gptimer_stop(timer_rx);
-                timerOnRx = false;
-                counter = 0;
-                stateRx = STOP_BIT;
-                //incrementer2++;
-            }                      
+
+        if(currentTime > T_offset){        
+            //rx_data_buffer[totalRxInterrupt] = currentTime;     
+            rx_data_buffer[counter] = gpioValue;
+            counter++;
+            gptimer_set_raw_count(timer_rx, 0);
+            if(counter == 8){
+                if(rx_data_buffer[7] == 0){
+                    stateRx = STOP_BIT;
+                    //incrementer2++;
+                }
+                else{
+                    stateRx = START_BIT;
+                    counter = 0;
+                    gptimer_stop(timer_rx);
+                    timerOnRx = false;
+                    incrementer2++;
+                }
+            }                  
         }
         break;
 
     case STOP_BIT:
-        if(totalRxInterrupt < 18){
-            //counter++;
+        if(counter < 0){
+            counter++;
         }
         else{
-            //gpio_intr_enable(GPIO_PIN_RX);
             stateRx = START_BIT;
             counter = 0;
-            totalRxInterrupt = 0;
-            //incrementer += 1;
+            gptimer_stop(timer_rx);
+            timerOnRx = false;
+            incrementer2++;
         }        
         break;
     default:
@@ -203,7 +213,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                     ESP_LOGE(TAG, "Failed to send start bit");
                     returnState = false;
                 }
-                incrementer++;
+                //incrementer++;
                 tx_counter++;
             }
             else{
@@ -257,7 +267,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 state = START_BIT;
                 timerOn = false;
                 tx_counter = 0;
-                incrementer2++;
+                //incrementer2++;
                 gpio_intr_enable(GPIO_PIN_RX);                
             }
             break;
