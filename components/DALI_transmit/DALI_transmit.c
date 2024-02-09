@@ -4,11 +4,13 @@
 #include "esp_log.h"
 
 int incrementer = 0;
+int incrementer2 = 0;
 
 bool manchesterClock = 1;
 enum State state = START_BIT;
 enum State stateRx = START_BIT;
 int8_t counter = 0;
+int8_t tx_counter = 0;
 uint32_t dataToTransmit = 0;
 esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
@@ -51,35 +53,6 @@ void init_DALI_transmit(){
     initTimer();    // Initialize the timer configuration
 };
 
-/**
- * @brief Initiate the transmission of a DALI data frame.
- *
- * This function initiates the transmission of a DALI data frame by starting a general-purpose timer,
- * which in turn triggers the transmit_bit_on_timer_alarm() function. Additionally, this function
- * handles the Manchester encoding process and stores the encoded data.
- *
- * @param cmd uint16 data frame to transmit.
- * @return void
- */
-void sendDALI_TX(uint16_t cmd){
-
-    gpio_intr_disable(GPIO_PIN_RX);
-
-    dataToTransmit = manchesterEncode(cmd);
-    if(!timerOn){
-        err = gptimer_start(timer_tx);
-        timerOn = true;
-    }
-
-    uint64_t timerVal;
-    gptimer_get_raw_count(timer_tx, &timerVal);
-    for(int i=31; i>=0; i--) {
-        int bit = (dataToTransmit >> i) & 1;
-        printf("%d", bit); 
-    }
-    printf("\n");
-}
-
 
 /**
  * @brief Receive the DALI data frame.
@@ -108,6 +81,7 @@ void receive_dali_data(void *arg){
     {
     case START_BIT:
         if(counter == 0){
+            //incrementer++;
             gptimer_set_raw_count(timer_rx, 0);
             //if(!timerOnRx){
                 //incrementer++;
@@ -142,7 +116,7 @@ void receive_dali_data(void *arg){
                 timerOnRx = false;
                 counter = 0;
                 stateRx = START_BIT;
-                incrementer++;
+                //incrementer2++;
             }                      
         }
         break;
@@ -172,6 +146,39 @@ void receive_dali_data(void *arg){
 void (*isr_rx_handler)(void*) = receive_dali_data;
 
 
+
+
+/**
+ * @brief Initiate the transmission of a DALI data frame.
+ *
+ * This function initiates the transmission of a DALI data frame by starting a general-purpose timer,
+ * which in turn triggers the transmit_bit_on_timer_alarm() function. Additionally, this function
+ * handles the Manchester encoding process and stores the encoded data.
+ *
+ * @param cmd uint16 data frame to transmit.
+ * @return void
+ */
+void sendDALI_TX(uint16_t cmd){
+
+    gpio_intr_disable(GPIO_PIN_RX);
+
+    dataToTransmit = manchesterEncode(cmd);
+    if(!timerOn){
+        err = gptimer_start(timer_tx);
+        timerOn = true;
+    }
+
+    uint64_t timerVal;
+    gptimer_get_raw_count(timer_tx, &timerVal);
+    for(int i=31; i>=0; i--) {
+        int bit = (dataToTransmit >> i) & 1;
+        printf("%d", bit); 
+    }
+    printf("\n");
+}
+
+
+
 /**
  * @brief Transmit a single bit on timer alarm.
  *
@@ -190,13 +197,14 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
     switch (state)
     {
         case START_BIT:
-            if(counter < 1){
+            if(tx_counter < 1){
                 err = gpio_set_level(GPIO_PIN_TX, LOW);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send start bit");
                     returnState = false;
                 }
-                counter++;
+                incrementer++;
+                tx_counter++;
             }
             else{
                 err = gpio_set_level(GPIO_PIN_TX, HIGH);
@@ -205,20 +213,22 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                     ESP_LOGE(TAG, "Failed to send start bit");
                     returnState = false;
                 }
+
                 state = DATA;
-                counter = 31;   //Set counter to 31, in order to make the counter ready to transmit the 32 bit frame. 
+                tx_counter = 31;   //Set counter to 31, in order to make the counter ready to transmit the 32 bit frame. 
             }
             break;
         case DATA:
             //Here we want to send the data, one bit at each iteratation
-            if(counter >= 0){
-                uint32_t bitToSend = (dataToTransmit >> counter) & 0x01; // Extract the next bit
+            if(tx_counter >= 0){
+                uint32_t bitToSend = (dataToTransmit >> tx_counter) & 0x01; // Extract the next bit
                 err = gpio_set_level(GPIO_PIN_TX, bitToSend);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send data bit");
                     returnState = false;
                 }
-                counter--;
+                tx_counter--;
+
             }
             else{
                 err = gpio_set_level(GPIO_PIN_TX, DALI_IDLE_VALUE);
@@ -227,16 +237,16 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                     returnState = false;
                 }
                 state = STOP_BIT;
-                counter = 0;
+                tx_counter = 0;                                               
             }
             break;
         case STOP_BIT:
-            if(counter == 0){
+            if(tx_counter == 0){
                 err = gpio_set_level(GPIO_PIN_TX, DALI_IDLE_VALUE);
-                counter++;
+                tx_counter++;
             }
-            else if(counter < 3){
-                counter++;
+            else if(tx_counter < 3){
+                tx_counter++;
             }
             else{
                 err = gptimer_stop(timer_tx);
@@ -246,8 +256,8 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 }
                 state = START_BIT;
                 timerOn = false;
-                counter = 0;
-                //incrementer++;
+                tx_counter = 0;
+                incrementer2++;
                 gpio_intr_enable(GPIO_PIN_RX);                
             }
             break;
@@ -380,7 +390,7 @@ void initTimer(){
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,   //Set clock source to default
         .direction = GPTIMER_COUNT_UP,        //Set counting direction to UP
         .resolution_hz = TIMER_FREQUENZ,      //Set timer frequenz (to 1MHz)
-        .intr_priority = 0,
+        .intr_priority = 2,
     };       
 
     err = gptimer_new_timer(&gptimer_config_tx, &timer_tx); // Create the new Tx timer
