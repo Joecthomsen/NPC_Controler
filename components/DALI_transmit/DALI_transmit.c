@@ -103,7 +103,7 @@ void receive_dali_data(void *arg){
         int gpioValue = !gpio_get_level(GPIO_PIN_RX);
         if(counter < 7){
             if(currentTime > T_offset){             
-                rx_data_buffer[counter] = 8;//gpioValue;
+                rx_data_buffer[counter] = gpioValue;
                 counter++;
                 gptimer_set_raw_count(timer_rx, 0);
                 //incrementer++;
@@ -111,11 +111,11 @@ void receive_dali_data(void *arg){
         }
         else{
             if(currentTime > T_offset){ 
-                rx_data_buffer[counter] = 9;//gpioValue;
+                rx_data_buffer[counter] = gpioValue;
                 gptimer_stop(timer_rx);
                 timerOnRx = false;
                 counter = 0;
-                stateRx = START_BIT;
+                stateRx = STOP_BIT;
                 //incrementer2++;
             }                      
         }

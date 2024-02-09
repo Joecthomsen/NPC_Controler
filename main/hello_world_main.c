@@ -42,18 +42,20 @@ void taskTwo(void *parameter){
         printf("incrementer2: %d\n", incrementer2);
 
 
-        // printf("Load ddr1 with value F0\n");
-        // sendDALI_TX(0xA3F0);
-        // vTaskDelay(1000/portTICK_PERIOD_MS);
-        // printf("Get DATA %d\n", incrementer);
-        // sendDALI_TX(0xFF98); //Query ddr1
-        // vTaskDelay(1000/portTICK_PERIOD_MS);
-        // printf("rx_data_buffer: ");
-        // for(int i = 0; i < 8; i++) {
-        //     printf("%d", rx_data_buffer[i]);
-        //     // printf(" : ");
-        // }
-        // printf("\n");
+        printf("Load ddr1 with value F0\n");
+        sendDALI_TX(0xA3FF);
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        printf("Get DATA %d\n", incrementer);
+        sendDALI_TX(0xFF98); //Query ddr1
+        vTaskDelay(1000/portTICK_PERIOD_MS);
+        printf("incrementer: %d\n", incrementer);
+        printf("incrementer2: %d\n", incrementer2);
+        printf("rx_data_buffer: ");
+        for(int i = 0; i < 8; i++) {
+            printf("%d", rx_data_buffer[i]);
+            // printf(" : ");
+        }
+        printf("\n");
 
 
         // printf("Load ddr1 with value FF\n");
