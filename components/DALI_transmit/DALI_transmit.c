@@ -4,24 +4,31 @@
 #include "esp_log.h"
 
 int incrementer = 0;
+int incrementer2 = 0;
 
 bool manchesterClock = 1;
 enum State state = START_BIT;
+enum State stateRx = START_BIT;
 int8_t counter = 0;
+int8_t tx_counter = 0;
 uint32_t dataToTransmit = 0;
 esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
 bool timerOn = false;
-int rx_data_buffer[8] = {0}; 
+bool timerOnRx = false;
+int rx_data_buffer[34] = {0}; 
 uint64_t t; // Half period for Rx timer
 uint64_t T = 0; // Period for Rx timer
 uint64_t T_offset = 0; // Period for Rx timer storing the 3/4 value
+uint64_t currentTime;
+
 
 bool gpioTest = LOW;
 
 gptimer_handle_t timer_tx;   //Init the Tx timer
 gptimer_handle_t timer_rx;   //Init the Rx timer
 gpio_isr_handle_t *handle_rx;
+int totalRxInterrupt = 0;
 
 
 
@@ -44,40 +51,11 @@ uint8_t percentToDalimapping(uint8_t input);
 void init_DALI_transmit(){
     initGPIO();     // Initialize the GPIO configuration
     initTimer();    // Initialize the timer configuration
+
+    for(int i = 0 ; i < 34; i++){
+        rx_data_buffer[i] = 8;
+    }
 };
-
-/**
- * @brief Initiate the transmission of a DALI data frame.
- *
- * This function initiates the transmission of a DALI data frame by starting a general-purpose timer,
- * which in turn triggers the transmit_bit_on_timer_alarm() function. Additionally, this function
- * handles the Manchester encoding process and stores the encoded data.
- *
- * @param cmd uint16 data frame to transmit.
- * @return void
- */
-void sendDALI_TX(uint16_t cmd){
-    
-    // gpioTest = !gpioTest;
-    // gpio_set_level(GPIO_PIN_TX, gpioTest);
-    // printf("GPIO_PIN_TX: %d\n", gpioTest);
-
-    gpio_intr_disable(GPIO_PIN_RX);
-
-    dataToTransmit = manchesterEncode(cmd);
-    if(!timerOn){
-        err = gptimer_start(timer_tx);
-        timerOn = true;
-    }
-
-    uint64_t timerVal;
-    gptimer_get_raw_count(timer_tx, &timerVal);
-    for(int i=31; i>=0; i--) {
-        int bit = (dataToTransmit >> i) & 1;
-        printf("%d", bit); 
-    }
-    printf("\n");
-}
 
 
 /**
@@ -97,67 +75,118 @@ void sendDALI_TX(uint16_t cmd){
  */
 void receive_dali_data(void *arg){
 
+    gptimer_get_raw_count(timer_rx, &currentTime);
+
     gpio_intr_disable(GPIO_PIN_RX);
-    
-    switch (state)
+    int gpioValue = !gpio_get_level(GPIO_PIN_RX);
+    //rx_data_buffer[totalRxInterrupt] = gpio_get_level(GPIO_PIN_RX);
+    //testCounter++;
+    totalRxInterrupt++;
+    switch (stateRx)
     {
     case START_BIT:
         if(counter == 0){
+            //incrementer++;
             gptimer_set_raw_count(timer_rx, 0);
-            gptimer_start(timer_rx);
+            //rx_data_buffer[totalRxInterrupt] = currentTime;
+
+            //if(!timerOnRx){
+                //incrementer++;
+                err = gptimer_start(timer_rx);
+              //  timerOnRx = true;
+            //}       
             counter++;
         }
         else{
-            gptimer_get_raw_count(timer_rx, &t);
-            T = t*2;
+            incrementer++;
+            T = currentTime*2;
             T_offset = T*0.75;
-            state = DATA;
+            stateRx = DATA;
             counter = 0;
             gptimer_set_raw_count(timer_rx, 0);
         }
-        gpio_intr_enable(GPIO_PIN_RX);
         break;
+
     case DATA:
-        uint64_t currentTime;
-        gptimer_get_raw_count(timer_rx, &currentTime);
-        if(counter < 7){            
-            if(currentTime > T_offset){
-                int gpioValue = !gpio_get_level(GPIO_PIN_RX);                
-                rx_data_buffer[counter] = gpioValue;
-                counter++;
-                gptimer_set_raw_count(timer_rx, 0);
-            }
+        int gpioValue = !gpio_get_level(GPIO_PIN_RX);
+
+        if(currentTime > T_offset){        
+            //rx_data_buffer[totalRxInterrupt] = currentTime;     
+            rx_data_buffer[counter] = gpioValue;
+            counter++;
+            gptimer_set_raw_count(timer_rx, 0);
+            if(counter == 8){
+                if(rx_data_buffer[7] == 0){
+                    stateRx = STOP_BIT;
+                    //incrementer2++;
+                }
+                else{
+                    stateRx = START_BIT;
+                    counter = 0;
+                    gptimer_stop(timer_rx);
+                    timerOnRx = false;
+                    incrementer2++;
+                }
+            }                  
+        }
+        break;
+
+    case STOP_BIT:
+        if(counter < 0){
+            counter++;
         }
         else{
-            if(currentTime > T_offset){
-                int gpioValue = !gpio_get_level(GPIO_PIN_RX);                
-                rx_data_buffer[counter] = gpioValue;
-                counter++;
-                gptimer_set_raw_count(timer_rx, 0);
-                gptimer_stop(timer_rx);
-                gptimer_set_raw_count(timer_rx, 0);
-                counter = 0;
-                state = START_BIT;
-                incrementer += 10;
-            }            
-        }
-        gpio_intr_enable(GPIO_PIN_RX);
-        break;
-    case STOP_BIT:
-        incrementer += 10;
-        gpio_intr_enable(GPIO_PIN_RX);
-
+            stateRx = START_BIT;
+            counter = 0;
+            gptimer_stop(timer_rx);
+            timerOnRx = false;
+            incrementer2++;
+        }        
         break;
     default:
-        gpio_intr_enable(GPIO_PIN_RX);
         break;
     }
 
+    gpio_intr_enable(GPIO_PIN_RX);
     return;
+//    incrementer++;
 }
 
 // Get function pointer  
 void (*isr_rx_handler)(void*) = receive_dali_data;
+
+
+
+
+/**
+ * @brief Initiate the transmission of a DALI data frame.
+ *
+ * This function initiates the transmission of a DALI data frame by starting a general-purpose timer,
+ * which in turn triggers the transmit_bit_on_timer_alarm() function. Additionally, this function
+ * handles the Manchester encoding process and stores the encoded data.
+ *
+ * @param cmd uint16 data frame to transmit.
+ * @return void
+ */
+void sendDALI_TX(uint16_t cmd){
+
+    gpio_intr_disable(GPIO_PIN_RX);
+
+    dataToTransmit = manchesterEncode(cmd);
+    if(!timerOn){
+        err = gptimer_start(timer_tx);
+        timerOn = true;
+    }
+
+    uint64_t timerVal;
+    gptimer_get_raw_count(timer_tx, &timerVal);
+    for(int i=31; i>=0; i--) {
+        int bit = (dataToTransmit >> i) & 1;
+        printf("%d", bit); 
+    }
+    printf("\n");
+}
+
 
 
 /**
@@ -178,13 +207,14 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
     switch (state)
     {
         case START_BIT:
-            if(counter < 1){
+            if(tx_counter < 1){
                 err = gpio_set_level(GPIO_PIN_TX, LOW);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send start bit");
                     returnState = false;
                 }
-                counter++;
+                //incrementer++;
+                tx_counter++;
             }
             else{
                 err = gpio_set_level(GPIO_PIN_TX, HIGH);
@@ -193,20 +223,22 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                     ESP_LOGE(TAG, "Failed to send start bit");
                     returnState = false;
                 }
+
                 state = DATA;
-                counter = 31;   //Set counter to 31, in order to make the counter ready to transmit the 32 bit frame. 
+                tx_counter = 31;   //Set counter to 31, in order to make the counter ready to transmit the 32 bit frame. 
             }
             break;
         case DATA:
             //Here we want to send the data, one bit at each iteratation
-            if(counter >= 0){
-                uint32_t bitToSend = (dataToTransmit >> counter) & 0x01; // Extract the next bit
+            if(tx_counter >= 0){
+                uint32_t bitToSend = (dataToTransmit >> tx_counter) & 0x01; // Extract the next bit
                 err = gpio_set_level(GPIO_PIN_TX, bitToSend);
                 if (err != ESP_OK) {
                     ESP_LOGE(TAG, "Failed to send data bit");
                     returnState = false;
                 }
-                counter--;
+                tx_counter--;
+
             }
             else{
                 err = gpio_set_level(GPIO_PIN_TX, DALI_IDLE_VALUE);
@@ -215,16 +247,16 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                     returnState = false;
                 }
                 state = STOP_BIT;
-                counter = 0;
+                tx_counter = 0;                                               
             }
             break;
         case STOP_BIT:
-            if(counter == 0){
+            if(tx_counter == 0){
                 err = gpio_set_level(GPIO_PIN_TX, DALI_IDLE_VALUE);
-                counter++;
+                tx_counter++;
             }
-            else if(counter < 3){
-                counter++;
+            else if(tx_counter < 3){
+                tx_counter++;
             }
             else{
                 err = gptimer_stop(timer_tx);
@@ -234,8 +266,8 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
                 }
                 state = START_BIT;
                 timerOn = false;
-                counter = 0;
-                incrementer++;
+                tx_counter = 0;
+                //incrementer2++;
                 gpio_intr_enable(GPIO_PIN_RX);                
             }
             break;
@@ -357,21 +389,28 @@ void initGPIO(){
 void initTimer(){
 
     //Init timer config struct - common to both timers
-    gptimer_config_t gptimer_config = {
+    gptimer_config_t gptimer_config_tx = {
         .clk_src = GPTIMER_CLK_SRC_DEFAULT,   //Set clock source to default
         .direction = GPTIMER_COUNT_UP,        //Set counting direction to UP
         .resolution_hz = TIMER_FREQUENZ,      //Set timer frequenz (to 1MHz)
         .intr_priority = 1,
-    };    
+    }; 
 
-    err = gptimer_new_timer(&gptimer_config, &timer_tx); // Create the new Tx timer
+    gptimer_config_t gptimer_config_rx = {
+        .clk_src = GPTIMER_CLK_SRC_DEFAULT,   //Set clock source to default
+        .direction = GPTIMER_COUNT_UP,        //Set counting direction to UP
+        .resolution_hz = TIMER_FREQUENZ,      //Set timer frequenz (to 1MHz)
+        .intr_priority = 2,
+    };       
+
+    err = gptimer_new_timer(&gptimer_config_tx, &timer_tx); // Create the new Tx timer
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to configure the Tx timer");
     }
     else
         ESP_LOGI(TAG, "Tx timer configured successfully");
 
-    err = gptimer_new_timer(&gptimer_config, &timer_rx); // Create the new Rx timer 
+    err = gptimer_new_timer(&gptimer_config_rx, &timer_rx); // Create the new Rx timer 
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Failed to configure the Rx timer");
     }
@@ -379,18 +418,11 @@ void initTimer(){
         ESP_LOGI(TAG, "Rx timer configured successfully");
     }
 
-    //Configure the timer alarm
     gptimer_alarm_config_t gptimer_alarm_config_TX = {
         .alarm_count = TIMER_FREQUENZ/BAUD_RATE,    //Set the alarm trigger point (416)
         .flags.auto_reload_on_alarm = true,         //Reload value upon alarm trigger
         .reload_count = 0,
     };
-
-    gptimer_alarm_config_t gptimer_alarm_config_RX = {
-        .alarm_count = (TIMER_FREQUENZ/BAUD_RATE)*2,    //Set the alarm trigger point (416*2)
-        .flags.auto_reload_on_alarm = true,         //Reload value upon alarm trigger
-        .reload_count = 0,
-    };        
 
     err = gptimer_set_alarm_action(timer_tx, &gptimer_alarm_config_TX);
     if (err != ESP_OK) {
