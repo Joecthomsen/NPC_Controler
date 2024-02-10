@@ -1,6 +1,8 @@
 #include "DALI_addressing.h"
 #include "DALI_commands.h"
 #include <math.h>
+#include "DALI_transmit.h"
+#include "freertos/FreeRTOS.h"
 
 // Prototypes
 bool compareDALIAddress(uint64_t address);
@@ -52,6 +54,10 @@ bool programShortAddress(uint64_t longAddress, uint8_t shortAddress)
 
 void initDALIAddressing()
 {
+    sendDALI_TX(INITIALIZE_ALL_DEVICE);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
+    sendDALI_TX(INITIALIZE_ALL_DEVICE);
+    vTaskDelay(20 / portTICK_PERIOD_MS);
 }
 
 bool compareDALIAddress(uint64_t address)
