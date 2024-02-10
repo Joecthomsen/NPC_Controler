@@ -1,4 +1,5 @@
 #include "DALI_addressing.h"
+#include "DALI_commands.h"  
 #include <math.h>
 
 
@@ -13,21 +14,10 @@ bool areDriversOnBusCommisioned(){
     //     if (verifyShortAddress(i)){
     //         return true;
     //     }
-    // }
+    // } 
     return false;
 }
 
-/**
- * @brief Mock function for comparison with driver response
- *
- * @param addressSearch The address to search for
- * @return 1 if the address is found, 0 otherwise
- * @attention This function should be replaced with the actual implementation of the ESP32 and DALI driver
- */
-int compareWithDriver(uint64_t addressSearch) {
-    // Mock implementation: Return 1 for keys greater than or equal to a threshold
-    return addressSearch >= 987654 ? 1 : 0;
-}
 
 /**
  * @brief Function to perform binary search for the lowest key
@@ -35,7 +25,7 @@ int compareWithDriver(uint64_t addressSearch) {
  * @param end The end of the search range, most likely the maximum key value for a uint64 (0xFFFFFFFFFFFFFFFF), but can be any value
  * @return The lowest key found in the search range
  */
-uint64_t findLowestKey(uint64_t start, uint64_t end) {
+uint64_t findLowestAddress(uint64_t start, uint64_t end) {
     while (start < end) {
         uint64_t mid = floor(start + (end - start) / 2);
         if (compareWithDriver(mid)) {
@@ -51,4 +41,9 @@ uint64_t findLowestKey(uint64_t start, uint64_t end) {
 bool programShortAddress(uint64_t longAddress, uint8_t shortAddress)
 {
     return false;
+}
+
+
+void initDALIAddressing(){
+    
 }
