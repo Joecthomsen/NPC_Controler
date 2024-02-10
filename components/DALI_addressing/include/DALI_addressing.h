@@ -3,8 +3,12 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
+#define DELAY_BETWEEN_COMMANDS 25 // 15 milliseconds
+
+typedef uint32_t address24_t; // 24 bit address
+
 bool areDriversOnBusCommisioned();
-uint64_t findLowestAddress(uint64_t start, uint64_t end);
+address24_t findLowestAddress(address24_t start, address24_t end);
 
 void initDALIAddressing();
 void generateRandomDALIAddress();
