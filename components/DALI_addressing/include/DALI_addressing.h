@@ -8,7 +8,6 @@ uint64_t findLowestAddress(uint64_t start, uint64_t end);
 
 void initDALIAddressing();
 void generateRandomDALIAddress();
-bool compareDALIAddress(uint64_t address);
 
 bool programShortAddress(uint64_t longAddress, uint8_t shortAddress);
 bool verifyShortAddress(uint8_t shortAddress);
