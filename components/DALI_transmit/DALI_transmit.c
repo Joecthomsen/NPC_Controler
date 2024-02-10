@@ -16,20 +16,20 @@ esp_err_t err;
 static const char * TAG = "DALI TRANSMIT";
 bool timerOn = false;
 bool timerOnRx = false;
-int rx_data_buffer[34] = {0}; 
+int rx_data_buffer[8] = {0}; 
 uint64_t t; // Half period for Rx timer
 uint64_t T = 0; // Period for Rx timer
 uint64_t T_offset = 0; // Period for Rx timer storing the 3/4 value
 uint64_t currentTime;
 
-
 bool gpioTest = LOW;
+
+bool newDataFlag = false;
 
 gptimer_handle_t timer_tx;   //Init the Tx timer
 gptimer_handle_t timer_rx;   //Init the Rx timer
 gpio_isr_handle_t *handle_rx;
 int totalRxInterrupt = 0;
-
 
 
 //Prototypes
@@ -52,7 +52,7 @@ void init_DALI_transmit(){
     initGPIO();     // Initialize the GPIO configuration
     initTimer();    // Initialize the timer configuration
 
-    for(int i = 0 ; i < 34; i++){
+    for(int i = 0 ; i < 8; i++){
         rx_data_buffer[i] = 8;
     }
 };
@@ -79,8 +79,6 @@ void receive_dali_data(void *arg){
 
     gpio_intr_disable(GPIO_PIN_RX);
     int gpioValue = !gpio_get_level(GPIO_PIN_RX);
-    //rx_data_buffer[totalRxInterrupt] = gpio_get_level(GPIO_PIN_RX);
-    //testCounter++;
     totalRxInterrupt++;
     switch (stateRx)
     {
@@ -118,6 +116,7 @@ void receive_dali_data(void *arg){
                     counter = 0;
                     gptimer_stop(timer_rx);
                     timerOnRx = false;
+                    newDataFlag = true;
                     incrementer2++;
                 }
             }                  
@@ -133,6 +132,7 @@ void receive_dali_data(void *arg){
             counter = 0;
             gptimer_stop(timer_rx);
             timerOnRx = false;
+            newDataFlag = true;
             incrementer2++;
         }        
         break;
@@ -172,11 +172,11 @@ void sendDALI_TX(uint16_t cmd){
 
     uint64_t timerVal;
     gptimer_get_raw_count(timer_tx, &timerVal);
-    for(int i=31; i>=0; i--) {
-        int bit = (dataToTransmit >> i) & 1;
-        printf("%d", bit); 
-    }
-    printf("\n");
+    // for(int i=31; i>=0; i--) {
+    //     int bit = (dataToTransmit >> i) & 1;
+    //     printf("%d", bit); 
+    // }
+    // printf("\n");
 }
 
 
@@ -361,12 +361,6 @@ void initGPIO(){
     }
     else
         ESP_LOGI(TAG, "GPIO RX pin configured successfully");
-    // err = gpio_set_level(GPIO_PIN_RX, DALI_IDLE_VALUE);     // Set the GPIO RX pin to 0 (LOW) as the DALI standby requires
-    // if (err != ESP_OK) {
-    //     ESP_LOGE(TAG, "Failed to set RX pin to LOW");
-    // }
-    // else
-    //     ESP_LOGI(TAG, "RX pin set to LOW successfully");
 
     err = gpio_isr_register(isr_rx_handler, NULL, 0, handle_rx); //Register the GPIO
     if(err!= ESP_OK){
@@ -451,4 +445,23 @@ void initTimer(){
     }
     else
         ESP_LOGI(TAG, "Rx Timer enabled in DALI_transmit_init() function");
+}
+
+bool newDataAvailable(){
+    return newDataFlag;
+}
+
+void clearNewDataFlag(){
+    newDataFlag = false;
+}
+
+uint8_t getNewData(){
+
+    uint8_t new_data = 0;
+    
+    for(int i=0; i<8; i++) {
+    new_data = (new_data << 1) | rx_data_buffer[i];
+    }
+
+    return new_data; 
 }

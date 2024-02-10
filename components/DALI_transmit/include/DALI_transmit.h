@@ -3,7 +3,6 @@
 #include "driver/gpio.h"
 #include "driver/gptimer_types.h"
 #include "driver/gptimer.h"
-//#include "driver/timer.h"
 
 //General settings
 #define BAUD_RATE 2400              //Used for transmitting baudrate
@@ -54,7 +53,11 @@ enum State {
 
 void init_DALI_transmit();
 void sendDALI_TX(uint16_t cmd);
+bool newDataAvailable();
+void clearNewDataFlag();
+uint8_t getNewData();
+
 
 extern int incrementer;
 extern int incrementer2;
-extern int rx_data_buffer[34]; 
+extern int rx_data_buffer[8]; 
