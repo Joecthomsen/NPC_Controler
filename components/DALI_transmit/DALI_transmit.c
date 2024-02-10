@@ -86,15 +86,8 @@ void receive_dali_data(void *arg){
     {
     case START_BIT:
         if(counter == 0){
-            //incrementer++;
             gptimer_set_raw_count(timer_rx, 0);
-            //rx_data_buffer[totalRxInterrupt] = currentTime;
-
-            //if(!timerOnRx){
-                //incrementer++;
-                err = gptimer_start(timer_rx);
-              //  timerOnRx = true;
-            //}       
+            gptimer_start(timer_rx);
             counter++;
         }
         else{
@@ -154,7 +147,6 @@ void receive_dali_data(void *arg){
 
 // Get function pointer  
 void (*isr_rx_handler)(void*) = receive_dali_data;
-
 
 
 
@@ -332,20 +324,20 @@ void initGPIO(){
 
     //Configure the GPIO pin TX
     gpio_config_t io_config_tx = {
-        .intr_type = GPIO_INTR_DISABLE,
-        .mode = GPIO_MODE_OUTPUT,
+        .mode = TX_PIN_DIRECTION,
+        .intr_type = TX_INTERRUPT_TYPE,
         .pin_bit_mask = (1ULL << GPIO_PIN_TX),
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .pull_up_en = GPIO_PULLUP_DISABLE,
+        .pull_down_en = TX_PIN_PULLDOWN,
+        .pull_up_en = TX_PIN_PULLUP,
     };
 
     //Configure the GPIO pin RX
     gpio_config_t io_config_rx = {
-        .intr_type = GPIO_INTR_ANYEDGE,
-        .mode = GPIO_MODE_INPUT,
+        .mode = RX_PIN_DIRECTION,
+        .intr_type = RX_INTERRUPT_TYPE,
         .pin_bit_mask = (1ULL << GPIO_PIN_RX),
-        .pull_down_en = GPIO_PULLDOWN_DISABLE,
-        .pull_up_en = GPIO_PULLUP_ENABLE,
+        .pull_down_en = RX_PIN_PULLUP,
+        .pull_up_en = RX_PIN_PULLUP,
         
     };
 
@@ -390,17 +382,17 @@ void initTimer(){
 
     //Init timer config struct - common to both timers
     gptimer_config_t gptimer_config_tx = {
-        .clk_src = GPTIMER_CLK_SRC_DEFAULT,   //Set clock source to default
-        .direction = GPTIMER_COUNT_UP,        //Set counting direction to UP
-        .resolution_hz = TIMER_FREQUENZ,      //Set timer frequenz (to 1MHz)
-        .intr_priority = 1,
+        .clk_src = CLOCK_SOURCE_TX,   //Set clock source to default
+        .direction = COUNTER_DIRECTION_TX,        //Set counting direction to UP
+        .resolution_hz = TIMER_FREQUENZ_TX,      //Set timer frequenz (to 1MHz)
+        .intr_priority = TIMER_INTERRUPT_PRIORITY_TX,
     }; 
 
     gptimer_config_t gptimer_config_rx = {
-        .clk_src = GPTIMER_CLK_SRC_DEFAULT,   //Set clock source to default
-        .direction = GPTIMER_COUNT_UP,        //Set counting direction to UP
-        .resolution_hz = TIMER_FREQUENZ,      //Set timer frequenz (to 1MHz)
-        .intr_priority = 2,
+        .clk_src = CLOCK_SOURCE_RX,   //Set clock source to default
+        .direction = COUNTER_DIRECTION_RX,        //Set counting direction to UP
+        .resolution_hz = TIMER_FREQUENZ_RX,      //Set timer frequenz (to 1MHz)
+        .intr_priority = TIMER_INTERRUPT_PRIORITY_RX,
     };       
 
     err = gptimer_new_timer(&gptimer_config_tx, &timer_tx); // Create the new Tx timer
@@ -419,9 +411,9 @@ void initTimer(){
     }
 
     gptimer_alarm_config_t gptimer_alarm_config_TX = {
-        .alarm_count = TIMER_FREQUENZ/BAUD_RATE,    //Set the alarm trigger point (416)
-        .flags.auto_reload_on_alarm = true,         //Reload value upon alarm trigger
-        .reload_count = 0,
+        .alarm_count = ALARM_COUNT_TX,    //Set the alarm trigger point (416)
+        .flags.auto_reload_on_alarm = ALARM_AUTO_RELOAD_TX,         //Reload value upon alarm trigger
+        .reload_count = ALARM_RELOAD_COUNT_TX,
     };
 
     err = gptimer_set_alarm_action(timer_tx, &gptimer_alarm_config_TX);
@@ -432,24 +424,11 @@ void initTimer(){
         ESP_LOGI(TAG, "Alarm action set successfully");
     }
 
-    // err = gptimer_set_alarm_action(timer_rx, &gptimer_alarm_config_RX);
-    // if(err != ESP_OK) {
-    //     ESP_LOGE(TAG, "Failed to set alarm RX action");
-    // }
-    // else{
-    //     ESP_LOGI(TAG, "RX Alarm action set successfully");
-    // }
-
     //Register event callbacks for timer
     gptimer_event_callbacks_t callbackTransmit = 
     {
         .on_alarm = transmit_bit_on_timer_alarm, // register callback
     };
-
-    // gptimer_event_callbacks_t callbackReceive =
-    // {
-    //     .on_alarm = receive_message,
-    // };
 
     err = gptimer_register_event_callbacks(timer_tx, &callbackTransmit, NULL);
     if (err != ESP_OK) {
@@ -457,13 +436,6 @@ void initTimer(){
     }
     else
         ESP_LOGI(TAG, "Tx Timer event callback registered successfully");
-
-    // err = gptimer_register_event_callbacks(timer_rx, &callbackReceive, NULL);
-    // if (err != ESP_OK) {
-    //     ESP_LOGE(TAG, "Failed to register event callback for Rx timer");
-    // }
-    // else
-    //     ESP_LOGI(TAG, "Rx Timer event callback registered successfully");
 
     //Enable the timers
     err = gptimer_enable(timer_tx);
