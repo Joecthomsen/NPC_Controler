@@ -78,7 +78,6 @@ void receive_dali_data(void *arg){
     gptimer_get_raw_count(timer_rx, &currentTime);
 
     gpio_intr_disable(GPIO_PIN_RX);
-    int gpioValue = !gpio_get_level(GPIO_PIN_RX);
     totalRxInterrupt++;
     switch (stateRx)
     {
@@ -102,14 +101,12 @@ void receive_dali_data(void *arg){
         int gpioValue = !gpio_get_level(GPIO_PIN_RX);
 
         if(currentTime > T_offset){        
-            //rx_data_buffer[totalRxInterrupt] = currentTime;     
             rx_data_buffer[counter] = gpioValue;
             counter++;
             gptimer_set_raw_count(timer_rx, 0);
             if(counter == 8){
                 if(rx_data_buffer[7] == 0){
                     stateRx = STOP_BIT;
-                    //incrementer2++;
                 }
                 else{
                     stateRx = START_BIT;
