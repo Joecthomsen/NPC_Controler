@@ -33,7 +33,7 @@ void taskTwo(void *parameter)
     while (true)
     {
 
-        uint8_t driversOnBus = commissionDALIBus();
+        uint8_t driversOnBus = commission_bus();
         printf("Drivers on bus: %d\n", driversOnBus);
 
         printf("Turn light off...\n");
