@@ -25,17 +25,18 @@ void commissionDALIBus(uint8_t *addressArray)
             printf("Drivers found: %d\n", counter);
             break;
         }
+        uint16_t shortAddress = PROGRAM_SHORT_ADDRESS | (counter << 1);
         setSearchAddress(address);
         printf("Address found: %lx\n", address);
         vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
-        sendDALI_TX(PROGRAM_SHORT_ADDRESS + counter);
+        sendDALI_TX(shortAddress);
         vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
         sendDALI_TX(WITHDRAW);
         vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
         addressArray[counter] = counter;
         counter++;
     }
-    sendDALI_TX(TERMINATE);
+    // sendDALI_TX(TERMINATE);
 }
 
 /**

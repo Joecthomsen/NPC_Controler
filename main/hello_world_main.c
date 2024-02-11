@@ -56,6 +56,7 @@ void taskTwo(void *parameter)
         sendDALI_TX(0x0200);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         sendDALI_TX(0x02FE);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
 
         // printf("Load ddr1 with value F0\n");
         // sendDALI_TX(0xA3F0);

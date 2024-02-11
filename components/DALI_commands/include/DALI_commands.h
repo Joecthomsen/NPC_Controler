@@ -7,7 +7,7 @@
 #define SEARCH_ADDRESS_H 0xB100
 #define SEARCH_ADDRESS_M 0xB300
 #define SEARCH_ADDRESS_L 0xB500
-#define PROGRAM_SHORT_ADDRESS 0xB700 // plus address
+#define PROGRAM_SHORT_ADDRESS 0xB701 // plus address
 #define VERIFY_SHORT_ADDRESS 0xB900  // plus address
 #define TERMINATE 0xA100
 #define BROADCAST_DAPC_ON 0xFEFE
