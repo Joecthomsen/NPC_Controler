@@ -10,21 +10,21 @@ void setSearchAddress(address24_t address);
 void initDALIAddressing();
 void generateRandomDALIAddress();
 void programShortAddress(address24_t longAddress, uint8_t shortAddress);
+bool verifyShortAddress(uint8_t shortAddress);
 
 /**
  * @brief Commission all DALI drivers on the bus by assigning short addresses
- * This function performs commissioning of all DALI drivers on the bus.
- * It searches for the lowest random address, assigns a short address,
- * withdraws and repeats until no more devices are found.
- * The assigned short addresses are stored in addressArray.
+ *
+ * @return Number of drivers commissioned
  *
  * @warning This function should be called only if the system is not already
- * commisioned as it will reset the short addresses of all drivers potentially
- * causing issues if the driver is already commisioned.
+ * commissioned, as it will reset the short addresses of all drivers, potentially
+ * causing issues if the driver is already commissioned.
  *
- * @param addressArray Array to store the assigned short addresses which should be 64 indexes long.
- *
- * @return void
+ * This function performs commissioning of all DALI drivers on the bus.
+ * It assigns short addresses starting from 0 up to 63 sequentially.
+ * The number of drivers commissioned is returned, so if 5 is returned,
+ * addresses 0 to 4 have been assigned.
  */
 uint8_t commissionDALIBus()
 {
@@ -38,12 +38,19 @@ uint8_t commissionDALIBus()
         address = findLowestAddress(address, 0xFFFFFF);
         if (address == 0xFFFFFF)
         {
-            printf("Drivers found: %d\n", counter);
             break;
         }
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
         printf("Address found: %lx\n", address);
         programShortAddress(address, counter);
+        if (verifyShortAddress(counter))
+        {
+            printf("Short address verified\n");
+        }
+        else
+        {
+            printf("Short address not verified\n");
+        }
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
         sendDALI_TX(WITHDRAW); // Ensure that the search address is set on the driver, otherwise this will fail. In this case, the search address is set in the function setSearchAddress.
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
@@ -133,9 +140,9 @@ void generateRandomDALIAddress()
 bool compareDALIAddress(address24_t address)
 {
     setSearchAddress(address);
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
     sendDALI_TX(COMPARE);
-    vTaskDelay(50 / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_AWAIT_RESPONSE);
 
     return newDataAvailable() ? (clearNewDataFlag(), true) : false;
 }
@@ -158,6 +165,14 @@ void programShortAddress(address24_t longAddress, uint8_t shortAddress)
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
     sendDALI_TX(PROGRAM_SHORT_ADDRESS | (shortAddress << 1));
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
+}
+
+bool verifyShortAddress(uint8_t shortAddress)
+{
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
+    sendDALI_TX(VERIFY_SHORT_ADDRESS | (shortAddress << 1));
+    vTaskDelay(DELAY_AWAIT_RESPONSE);
+    return newDataAvailable() ? (clearNewDataFlag(), true) : false;
 }
 
 /**
