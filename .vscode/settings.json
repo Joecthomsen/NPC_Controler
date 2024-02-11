@@ -52,7 +52,8 @@
         "unordered_set": "c",
         "initializer_list": "c",
         "chrono": "c",
-        "cmath": "c"
+        "cmath": "c",
+        "bitset": "c"
     },
     "idf.flashType": "UART"
 }

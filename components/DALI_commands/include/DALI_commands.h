@@ -10,5 +10,6 @@
 #define PROGRAM_SHORT_ADDRESS 0xB700 // plus address
 #define VERIFY_SHORT_ADDRESS 0xB900  // plus address
 #define TERMINATE 0xA100
-#define DAPC_ON 0xFEFE
-#define DAPC_OFF 0xFE00
+#define BROADCAST_DAPC_ON 0xFEFE
+#define BROADCAST_DAPC_OFF 0xFE00
+#define DAPC_ON (short_address)(short_address << 1) + 1

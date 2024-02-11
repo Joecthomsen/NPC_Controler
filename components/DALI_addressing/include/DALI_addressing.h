@@ -9,6 +9,7 @@ typedef uint32_t address24_t; // 24 bit address
 
 bool areDriversOnBusCommisioned();
 address24_t findLowestAddress(address24_t start, address24_t end);
+void commissionDALIBus(uint8_t *addressArray);
 
 void initDALIAddressing();
 void generateRandomDALIAddress();

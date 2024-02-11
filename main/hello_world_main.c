@@ -30,27 +30,15 @@ void taskOne(void *parameter)
 
 void taskTwo(void *parameter)
 {
+    uint8_t testA[64];
     while (true)
     {
 
-        initDALIAddressing();
-        generateRandomDALIAddress();
-        address24_t address = findLowestAddress(0, 0xFFFFFF);
-        printf("Address: %lx\n", address);
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-
-        printf("query randAddr..\n");
-        sendDALI_TX(0xFFC2);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        if (newDataAvailable())
-        {
-            printf("Hex value: %x\n", getNewData());
-            clearNewDataFlag();
-        }
+        commissionDALIBus(&testA);
 
         printf("Turn light off...\n");
         sendDALI_TX(0xFE00);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
         printf("incrementer: %d\n", incrementer);
         printf("incrementer2: %d\n", incrementer2);
         printf("Turn light on...\n");
@@ -58,6 +46,16 @@ void taskTwo(void *parameter)
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         printf("incrementer: %d\n", incrementer);
         printf("incrementer2: %d\n", incrementer2);
+
+        printf("Blinking lamp 0\n");
+        sendDALI_TX(0x0000);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        sendDALI_TX(0x00FE);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        printf("Blinking lamp 1\n");
+        sendDALI_TX(0x0200);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        sendDALI_TX(0x02FE);
 
         // printf("Load ddr1 with value F0\n");
         // sendDALI_TX(0xA3F0);
