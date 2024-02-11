@@ -2,15 +2,33 @@
 #include "DALI_commands.h"
 #include <math.h>
 #include "DALI_transmit.h"
-#include "freertos/FreeRTOS.h"
 
 // Prototypes
 bool compareDALIAddress(address24_t address);
 void setSearchAddress(address24_t address);
+address24_t findLowestAddress(address24_t start, address24_t end);
 
+void initDALIAddressing();
+void generateRandomDALIAddress();
+void programShortAddress(address24_t longAddress, uint8_t shortAddress);
+
+/**
+ * @brief Commission all DALI drivers on the bus by assigning short addresses
+ * This function performs commissioning of all DALI drivers on the bus.
+ * It searches for the lowest random address, assigns a short address,
+ * withdraws and repeats until no more devices are found.
+ * The assigned short addresses are stored in addressArray.
+ *
+ * @warning This function should be called only if the system is not already
+ * commisioned as it will reset the short addresses of all drivers potentially
+ * causing issues if the driver is already commisioned.
+ *
+ * @param addressArray Array to store the assigned short addresses which should be 64 indexes long.
+ *
+ * @return void
+ */
 void commissionDALIBus(uint8_t *addressArray)
 {
-
     uint8_t test[64];
     uint8_t counter = 0;
     address24_t address = 0;
@@ -25,18 +43,13 @@ void commissionDALIBus(uint8_t *addressArray)
             printf("Drivers found: %d\n", counter);
             break;
         }
-        uint16_t shortAddress = PROGRAM_SHORT_ADDRESS | (counter << 1);
-        setSearchAddress(address);
         printf("Address found: %lx\n", address);
-        vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
-        sendDALI_TX(shortAddress);
-        vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
-        sendDALI_TX(WITHDRAW);
+        programShortAddress(address, counter);
+        sendDALI_TX(WITHDRAW); // Ensure that the search address is set on the driver, otherwise this will fail. In this case, the search address is set in the function setSearchAddress.
         vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
         addressArray[counter] = counter;
         counter++;
     }
-    // sendDALI_TX(TERMINATE);
 }
 
 /**
@@ -74,9 +87,11 @@ address24_t findLowestAddress(address24_t start, address24_t end)
     return start;
 }
 
+/**
+ * @brief This function will set all the drivers on the bus to in initialization state
+ */
 void initDALIAddressing()
 {
-    sendDALI_TX(TERMINATE);
     vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
     sendDALI_TX(INITIALIZE_ALL_DEVICE);
     vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
@@ -84,6 +99,15 @@ void initDALIAddressing()
     vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
 }
 
+/**
+ * @brief Generate random DALI addresses for all devices on bus
+ *
+ * This function causes all DALI devices on the bus to generate
+ * random 24-bit addresses. It does this by sending two
+ * GENERATE_RANDOM_ADDRESS commands with a delay between them.
+ * The random addressing allows the bus to be commissioned by finding
+ * the device with lowest address first.
+ */
 void generateRandomDALIAddress()
 {
     sendDALI_TX(GENERATE_RANDOM_ADDRESS);
@@ -92,6 +116,19 @@ void generateRandomDALIAddress()
     vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
 }
 
+/**
+ * @brief Compare a DALI address
+ *
+ * @param address The 24-bit address to compare against devices on bus
+ * @return true if address is higher than the address of any device on the bus, false otherwise
+ *
+ * This function compares a given 24-bit address against all devices
+ * on the DALI bus to check if it is higher than the address of any
+ * device on the bus. It does this by setting the search address using
+ * the given address, sending a COMPARE command, and checking if a
+ * response is received. A false response indicates the address is
+ * higher than any device address on the bus.
+ */
 bool compareDALIAddress(address24_t address)
 {
     setSearchAddress(address);
@@ -101,11 +138,36 @@ bool compareDALIAddress(address24_t address)
     return newDataAvailable() ? (clearNewDataFlag(), true) : false;
 }
 
-bool programShortAddress(uint64_t longAddress, uint8_t shortAddress)
+/**
+ * @brief Program short address of a device given its long address
+ *
+ * @param longAddress The 24-bit long address of the device
+ * @param shortAddress The 8-bit short address to program
+ *
+ * This function programs the short address of a DALI device given its
+ * 24-bit long address. It does this by setting the search address to
+ * the provided long address, then sending the PROGRAM_SHORT_ADDRESS
+ * command with the short address to program. This assigns the short
+ * address to the device with the matching long address.
+ */
+void programShortAddress(address24_t longAddress, uint8_t shortAddress)
 {
-    return false;
+    setSearchAddress(longAddress);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    sendDALI_TX(PROGRAM_SHORT_ADDRESS | (shortAddress << 1));
+    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
 }
 
+/**
+ * @brief Set the DALI search address
+ *
+ * @param address The 24-bit address to set as the search address
+ *
+ * This function sets the 24-bit DALI search address that is used for
+ * addressing and comparing devices on the bus. It splits the address
+ * into high, middle and low bytes and sends the SEARCH_ADDRESS_H,
+ * SEARCH_ADDRESS_M, and SEARCH_ADDRESS_L commands with each byte.
+ */
 void setSearchAddress(address24_t address)
 {
     uint8_t hByte = (address >> 16) & 0xFF; // Get the high bytes
