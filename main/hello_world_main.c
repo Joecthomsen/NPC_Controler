@@ -30,11 +30,11 @@ void taskOne(void *parameter)
 
 void taskTwo(void *parameter)
 {
-    uint8_t testA[64];
     while (true)
     {
 
-        commissionDALIBus(&testA);
+        uint8_t driversOnBus = commissionDALIBus();
+        printf("Drivers on bus: %d\n", driversOnBus);
 
         printf("Turn light off...\n");
         sendDALI_TX(0xFE00);

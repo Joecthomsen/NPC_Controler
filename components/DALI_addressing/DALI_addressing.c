@@ -4,10 +4,9 @@
 #include "DALI_transmit.h"
 
 // Prototypes
+address24_t findLowestAddress(address24_t start, address24_t end);
 bool compareDALIAddress(address24_t address);
 void setSearchAddress(address24_t address);
-address24_t findLowestAddress(address24_t start, address24_t end);
-
 void initDALIAddressing();
 void generateRandomDALIAddress();
 void programShortAddress(address24_t longAddress, uint8_t shortAddress);
@@ -27,9 +26,8 @@ void programShortAddress(address24_t longAddress, uint8_t shortAddress);
  *
  * @return void
  */
-void commissionDALIBus(uint8_t *addressArray)
+uint8_t commissionDALIBus()
 {
-    uint8_t test[64];
     uint8_t counter = 0;
     address24_t address = 0;
     initDALIAddressing();
@@ -43,13 +41,17 @@ void commissionDALIBus(uint8_t *addressArray)
             printf("Drivers found: %d\n", counter);
             break;
         }
+        vTaskDelay(DELAY_BETWEEN_COMMANDS);
         printf("Address found: %lx\n", address);
         programShortAddress(address, counter);
+        vTaskDelay(DELAY_BETWEEN_COMMANDS);
         sendDALI_TX(WITHDRAW); // Ensure that the search address is set on the driver, otherwise this will fail. In this case, the search address is set in the function setSearchAddress.
-        vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
-        addressArray[counter] = counter;
+        vTaskDelay(DELAY_BETWEEN_COMMANDS);
         counter++;
     }
+    sendDALI_TX(TERMINATE);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
+    return counter;
 }
 
 /**
@@ -74,7 +76,6 @@ address24_t findLowestAddress(address24_t start, address24_t end)
     while (start < end)
     {
         address24_t mid = floor(start + (end - start) / 2);
-        // printf("Mid: %ld\n", mid);
         if (compareDALIAddress(mid))
         {
             end = mid; // Continue searching in the lower half
@@ -92,11 +93,11 @@ address24_t findLowestAddress(address24_t start, address24_t end)
  */
 void initDALIAddressing()
 {
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
     sendDALI_TX(INITIALIZE_ALL_DEVICE);
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
     sendDALI_TX(INITIALIZE_ALL_DEVICE);
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
 }
 
 /**
@@ -111,9 +112,9 @@ void initDALIAddressing()
 void generateRandomDALIAddress()
 {
     sendDALI_TX(GENERATE_RANDOM_ADDRESS);
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
     sendDALI_TX(GENERATE_RANDOM_ADDRESS);
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
 }
 
 /**
@@ -132,6 +133,7 @@ void generateRandomDALIAddress()
 bool compareDALIAddress(address24_t address)
 {
     setSearchAddress(address);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
     sendDALI_TX(COMPARE);
     vTaskDelay(50 / portTICK_PERIOD_MS);
 
@@ -153,9 +155,9 @@ bool compareDALIAddress(address24_t address)
 void programShortAddress(address24_t longAddress, uint8_t shortAddress)
 {
     setSearchAddress(longAddress);
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
     sendDALI_TX(PROGRAM_SHORT_ADDRESS | (shortAddress << 1));
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
 }
 
 /**
@@ -175,9 +177,9 @@ void setSearchAddress(address24_t address)
     uint8_t lByte = (address >> 0) & 0xFF;  // Get the low bytes
 
     sendDALI_TX(SEARCH_ADDRESS_H + hByte);
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
     sendDALI_TX(SEARCH_ADDRESS_M + mByte);
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
     sendDALI_TX(SEARCH_ADDRESS_L + lByte);
-    vTaskDelay(DELAY_BETWEEN_COMMANDS / portTICK_PERIOD_MS);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
 }
