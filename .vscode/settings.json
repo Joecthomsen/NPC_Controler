@@ -45,7 +45,15 @@
         "dali_commands.h": "c",
         "dali_addressing.h": "c",
         "esp_intr_alloc.h": "c",
-        "regex": "c"
+        "regex": "c",
+        "deque": "c",
+        "list": "c",
+        "unordered_map": "c",
+        "unordered_set": "c",
+        "initializer_list": "c",
+        "chrono": "c",
+        "cmath": "c",
+        "bitset": "c"
     },
     "idf.flashType": "UART"
 }
