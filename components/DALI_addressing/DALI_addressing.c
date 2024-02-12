@@ -70,29 +70,35 @@ DALI_Status check_drivers_commissioned()
 {
     uint8_t totalDriversOnBus = 0;
     uint8_t driversWithShortAddressOnBus = 0;
+    address24_t address = 0;
     set_all_devices_in_initialize_state();
     generate_random_device_addresses();
+    printf("Analyzing bus...\n");
     while (true)
     {
-        address24_t address = find_lowest_device_address(0, 0xFFFFFF);
+        address = find_lowest_device_address(address, 0xFFFFFF);
+        printf("Address found ANALYZE: %lx\n", address);
         if (address == 0xFFFFFF)
         {
             break;
         }
+        set_search_address(address);
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
         sendDALI_TX(WITHDRAW); // Ensure that the search address is set on the driver, otherwise this will fail. In this case, the search address is set in the function set_search_address.
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
         totalDriversOnBus++;
     }
-    sendDALI_TX(TERMINATE);
 
     for (int i = 0; i < 64; i++)
     {
         if (verify_short_address(i))
         {
             driversWithShortAddressOnBus++;
+            printf("Driver %d has short address %d\n", i, i);
         }
+        vTaskDelay(DELAY_AWAIT_RESPONSE);
     }
+    sendDALI_TX(TERMINATE);
     if (totalDriversOnBus != driversWithShortAddressOnBus)
     {
         return DALI_ERR_UNCOMMISSIONED_DRIVER;
@@ -115,7 +121,6 @@ DALI_Status check_drivers_commissioned()
  */
 address24_t find_lowest_device_address(address24_t start, address24_t end)
 {
-    printf("Searching for lowest address...\n");
     while (start < end)
     {
         address24_t mid = floor(start + (end - start) / 2);

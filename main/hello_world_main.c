@@ -32,6 +32,23 @@ void taskTwo(void *parameter)
 {
     while (true)
     {
+        DALI_Status check = check_drivers_commissioned();
+        if (check == DALI_OK)
+        {
+            printf("All drivers commissioned\n");
+        }
+        else if (check == DALI_ERR_NO_DRIVERS)
+        {
+            printf("No drivers on the bus\n");
+        }
+        else if (check == DALI_ERR_UNCOMMISSIONED_DRIVER)
+        {
+            printf("Uncommissioned driver\n");
+        }
+        else
+        {
+            printf("Unknown error: %d\n", check);
+        }
 
         uint8_t driversOnBus = commission_bus();
         printf("Drivers on bus: %d\n", driversOnBus);
