@@ -15,6 +15,7 @@
 #include "esp_system.h"
 #include "DALI_transmit.h"
 #include "DALI_addressing.h"
+#include "DALI_diagnostics_and_maintenance.h"
 #include "driver/gptimer.h"
 #include "esp_log.h"
 
@@ -50,6 +51,10 @@ void taskTwo(void *parameter)
             printf("Unknown error: %d\n", check);
         }
 
+        fetch_controle_gear_data(0x00);
+        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        fetch_controle_gear_data(0x01);
+
         uint8_t driversOnBus = commission_bus();
         printf("Drivers on bus: %d\n", driversOnBus);
 
@@ -74,66 +79,6 @@ void taskTwo(void *parameter)
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         sendDALI_TX(0x02FE);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // printf("Load ddr1 with value F0\n");
-        // sendDALI_TX(0xA3F0);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // sendDALI_TX(0xFF98); // Query ddr1
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // if (newDataAvailable())
-        // {
-        //     printf("Hex value: %x\n", getNewData());
-        //     clearNewDataFlag();
-        // }
-
-        // printf("Load ddr1 with value 33\n");
-        // sendDALI_TX(0xA333);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // sendDALI_TX(0xFF98); // Query ddr1
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // if (newDataAvailable())
-        // {
-        //     printf("Hex value: %x\n", getNewData());
-        //     clearNewDataFlag();
-        // }
-
-        // printf("Load ddr1 with value 00\n");
-        // sendDALI_TX(0xA300);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // sendDALI_TX(0xFF98); // Query ddr1
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // if (newDataAvailable())
-        // {
-        //     printf("Hex value: %x\n", getNewData());
-        //     clearNewDataFlag();
-        // }
-
-        // printf("Load ddr1 with value AA\n");
-        // sendDALI_TX(0xA3AA);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // sendDALI_TX(0xFF98); // Query ddr1
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // if (newDataAvailable())
-        // {
-        //     printf("Hex value: %x\n", getNewData());
-        //     clearNewDataFlag();
-        // }
-
-        // printf("Load ddr1 with value FF\n");
-        // sendDALI_TX(0xA3FF);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // sendDALI_TX(0xFF98); // Query ddr1
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // if (newDataAvailable())
-        // {
-        //     printf("Hex value: %x\n", getNewData());
-        //     clearNewDataFlag();
-        // }
     }
 }
 
