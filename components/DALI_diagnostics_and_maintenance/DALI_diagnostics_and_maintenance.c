@@ -8,6 +8,8 @@
 DALI_Status read_memory_location(uint8_t short_address, uint8_t memory_bank, uint8_t location, uint8_t *data);
 void select_memory_bank_location(uint8_t memory_bank, uint8_t location);
 DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time);
+DALI_Status get_start_counter(uint8_t short_address, bit24_t *start_counter);
+DALI_Status get_external_supply_voltage(uint8_t short_address, uint16_t *external_supply_voltage);
 uint8_t calculate_short_address_standard_cmd(uint8_t short_address);
 
 // Functions
@@ -17,20 +19,60 @@ Controle_gear fetch_controle_gear_data(uint8_t short_address)
     DALI_Status dali_status;
 
     uint32_t new_operating_time = 0;
+    bit24_t new_start_counter = 0;
+    uint16_t new_external_supply_voltage = 0;
+    uint8_t new_external_supply_voltage_frequenzy = 0;
+    uint8_t new_power_factor;
+    uint8_t new_overall_faliure_condition;
+    uint8_t new_external_supply_undervoltage;
+    uint8_t new_external_supply_undervoltage_counter;
+    uint8_t new_external_supply_overvoltage;
+    uint8_t new_external_supply_overvoltage_counter;
+    uint8_t new_output_power_limitation;
+    uint8_t new_output_power_limitation_counter;
+    uint8_t new_thermal_derating;
+    uint8_t new_thermal_derating_counter;
+    uint8_t new_thermal_shutdown;
+    uint8_t new_thermal_shutdown_counter;
+    uint8_t new_temperature;
+    uint8_t new_output_current_percent;
+
     dali_status = get_operating_time(short_address, &new_operating_time);
     if (dali_status != DALI_OK)
-        printf("Error: %d\n", dali_status);
-    else
-        printf("Operating time: %lu\n", new_operating_time);
+        printf("Operation time error: %d\n", dali_status);
+
+    dali_status = get_start_counter(short_address, &new_start_counter);
+    if (dali_status != DALI_OK)
+        printf("Start counter error: %d\n", dali_status);
+
+    dali_status = get_external_supply_voltage(short_address, &new_external_supply_voltage);
+    if (dali_status != DALI_OK)
+        printf("External supply voltage error: %d\n", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_VOLTAGE_FREQUENZY, &new_external_supply_voltage_frequenzy);
+    if (dali_status != DALI_OK)
+        printf("External supply voltage frequenzy error: %d\n", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, POWER_FACTOR, &new_power_factor);
+    if (dali_status != DALI_OK)
+        printf("Power factor error: %d\n", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OVERALL_FALIURE_CONDITION, &new_overall_faliure_condition);
+    if (dali_status != DALI_OK)
+        printf("Overall faliure condition: %d\n", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPY_UNDERVOLTAGE_COUNTER, &new_external_supply_undervoltage_counter);
+    if (dali_status != DALI_OK)
+        printf("External supply undervoltage counter error: %d", dali_status);
 
     controle_gear.operating_time = new_operating_time;
-    controle_gear.start_counter = 0;
-    controle_gear.external_supply_voltage = 0;
-    controle_gear.external_supply_voltage_frequency = 0;
-    controle_gear.power_factor = 0;
-    controle_gear.overall_faliure_condition = 0;
+    controle_gear.start_counter = new_start_counter;
+    controle_gear.external_supply_voltage = new_external_supply_voltage;
+    controle_gear.external_supply_voltage_frequency = new_external_supply_voltage_frequenzy;
+    controle_gear.power_factor = new_power_factor;
+    controle_gear.overall_faliure_condition = new_overall_faliure_condition;
     controle_gear.external_supply_undervoltage = 0;
-    controle_gear.external_supply_undervoltage_counter = 0;
+    controle_gear.external_supply_undervoltage_counter = new_external_supply_overvoltage_counter;
     controle_gear.external_supply_overvoltage = 0;
     controle_gear.external_supply_overvoltage_counter = 0;
     controle_gear.output_power_limitation = 0;
@@ -97,7 +139,50 @@ DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time)
     if (dali_status != DALI_OK)
         return dali_status;
 
-    *operating_time |= ((operating_time_MSB << 0x18U) | (operating_time_2 << 0x10U) | (operating_time_3 << 0x8U) | operating_time_LSB); // The leftshifters are in HEX
+    *operating_time |= ((operating_time_MSB << 0x18U) | (operating_time_2 << 0x10U) | (operating_time_3 << 0x8U) | operating_time_LSB);
+
+    return dali_status;
+}
+
+DALI_Status get_start_counter(uint8_t short_address, bit24_t *start_counter)
+{
+    uint8_t start_counter_MSB;
+    uint8_t start_counter_2;
+    uint8_t start_counter_LSB;
+    DALI_Status dali_status;
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, START_COUNTER_MSB, &start_counter_MSB);
+    if (dali_status != DALI_OK)
+        return dali_status;
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, START_COUNTER_2, &start_counter_2);
+    if (dali_status != DALI_OK)
+        return dali_status;
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, START_COUNTER_LSB, &start_counter_LSB);
+    if (dali_status != DALI_OK)
+        return dali_status;
+
+    *start_counter |= ((start_counter_MSB << 0x10U) | (start_counter_2 << 0x8U) | start_counter_LSB);
+
+    return dali_status;
+}
+
+DALI_Status get_external_supply_voltage(uint8_t short_address, uint16_t *external_supply_voltage)
+{
+    uint8_t external_supply_voltage_MSB;
+    uint8_t external_supply_voltage_LSB;
+    DALI_Status dali_status;
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_VOLTAGE_MSB, &external_supply_voltage_MSB);
+    if (dali_status != DALI_OK)
+        return dali_status;
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_VOLTAGE_LSB, &external_supply_voltage_LSB);
+    if (dali_status != DALI_OK)
+        return dali_status;
+
+    *external_supply_voltage |= (external_supply_voltage_MSB << 0x08) | (external_supply_voltage_LSB);
 
     return dali_status;
 }

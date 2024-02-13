@@ -34,6 +34,7 @@ void taskTwo(void *parameter)
     while (true)
     {
         DALI_Status check = check_drivers_commissioned();
+
         if (check == DALI_OK)
         {
             printf("All drivers commissioned\n");
@@ -51,9 +52,13 @@ void taskTwo(void *parameter)
             printf("Unknown error: %d\n", check);
         }
 
-        fetch_controle_gear_data(0x00);
+        Controle_gear controle_gear_1 = fetch_controle_gear_data(0x00);
+        printf("OPERATION TIME 1: %lx\n", controle_gear_1.operating_time);
+        printf("START COUNTER 1: %lx\n", controle_gear_1.start_counter);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
-        fetch_controle_gear_data(0x01);
+        Controle_gear controle_gear_2 = fetch_controle_gear_data(0x01);
+        printf("OPERATION TIME 2: %lx\n", controle_gear_2.operating_time);
+        printf("START COUNTER 2: %lx\n", controle_gear_2.start_counter);
 
         uint8_t driversOnBus = commission_bus();
         printf("Drivers on bus: %d\n", driversOnBus);
