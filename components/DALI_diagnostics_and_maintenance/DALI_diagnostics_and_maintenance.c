@@ -61,9 +61,53 @@ Controle_gear fetch_controle_gear_data(uint8_t short_address)
     if (dali_status != DALI_OK)
         printf("Overall faliure condition: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPY_UNDERVOLTAGE_COUNTER, &new_external_supply_undervoltage_counter);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_UNDERVOLTAGE, &new_external_supply_undervoltage);
     if (dali_status != DALI_OK)
         printf("External supply undervoltage counter error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_UNDERVOLTAGE_COUNTER, &new_external_supply_undervoltage_counter);
+    if (dali_status != DALI_OK)
+        printf("External supply undervoltage counter error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_OVERVOLTAGE, &new_external_supply_overvoltage);
+    if (dali_status != DALI_OK)
+        printf("External supply undervoltage counter error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_OVERVOLTAGE_COUNTER, &new_external_supply_overvoltage_counter);
+    if (dali_status != DALI_OK)
+        printf("External supply undervoltage counter error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_POWER_LIMITATION, &new_output_power_limitation);
+    if (dali_status != DALI_OK)
+        printf("Power limitation error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_POWER_LIMITATION_COUNTER, &new_output_power_limitation_counter);
+    if (dali_status != DALI_OK)
+        printf("Power limitation counter error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_DERATING, &new_thermal_derating);
+    if (dali_status != DALI_OK)
+        printf("Therman derating error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_DERATING_COUNTER, &new_thermal_derating_counter);
+    if (dali_status != DALI_OK)
+        printf("Therman derating counter error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_SHUTDOWN, &new_thermal_shutdown);
+    if (dali_status != DALI_OK)
+        printf("Therman derating counter error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_SHUTDOWN_COUNTER, &new_thermal_shutdown_counter);
+    if (dali_status != DALI_OK)
+        printf("Therman derating counter error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, TEMPERATURE, &new_temperature);
+    if (dali_status != DALI_OK)
+        printf("Therman derating counter error: %d", dali_status);
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_CURRENT_PERCENT, &new_output_current_percent);
+    if (dali_status != DALI_OK)
+        printf("Therman derating counter error: %d", dali_status);
 
     controle_gear.operating_time = new_operating_time;
     controle_gear.start_counter = new_start_counter;
@@ -71,24 +115,25 @@ Controle_gear fetch_controle_gear_data(uint8_t short_address)
     controle_gear.external_supply_voltage_frequency = new_external_supply_voltage_frequenzy;
     controle_gear.power_factor = new_power_factor;
     controle_gear.overall_faliure_condition = new_overall_faliure_condition;
-    controle_gear.external_supply_undervoltage = 0;
-    controle_gear.external_supply_undervoltage_counter = new_external_supply_overvoltage_counter;
-    controle_gear.external_supply_overvoltage = 0;
-    controle_gear.external_supply_overvoltage_counter = 0;
-    controle_gear.output_power_limitation = 0;
-    controle_gear.output_power_limitation_counter = 0;
-    controle_gear.thermal_derating = 0;
-    controle_gear.thermal_derating_counter = 0;
-    controle_gear.thermal_shutdown = 0;
-    controle_gear.thermal_shutdown_counter = 0;
-    controle_gear.temperature = 0;
-    controle_gear.output_current_percent = 0;
+    controle_gear.external_supply_undervoltage = new_external_supply_undervoltage;
+    controle_gear.external_supply_undervoltage_counter = new_external_supply_undervoltage_counter;
+    controle_gear.external_supply_overvoltage = new_external_supply_overvoltage;
+    controle_gear.external_supply_overvoltage_counter = new_external_supply_overvoltage_counter;
+    controle_gear.output_power_limitation = new_output_power_limitation;
+    controle_gear.output_power_limitation_counter = new_output_power_limitation_counter;
+    controle_gear.thermal_derating = new_thermal_derating;
+    controle_gear.thermal_derating_counter = new_thermal_derating_counter;
+    controle_gear.thermal_shutdown = new_thermal_shutdown;
+    controle_gear.thermal_shutdown_counter = new_thermal_shutdown_counter;
+    controle_gear.temperature = new_temperature;
+    controle_gear.output_current_percent = new_output_current_percent;
 
     return controle_gear;
 }
 
 DALI_Status read_memory_location(uint8_t short_address, uint8_t memory_bank, uint8_t location, uint8_t *data)
 {
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
     select_memory_bank_location(memory_bank, location);
     sendDALI_TX(READ_MEMORY_LOCATION | (calculate_short_address_standard_cmd(short_address) << 8));
     vTaskDelay(DELAY_AWAIT_RESPONSE);
@@ -193,4 +238,29 @@ uint8_t calculate_short_address_standard_cmd(uint8_t short_address)
     uint8_t result = 0;
     result = (short_address << 1) + 1;
     return result;
+}
+
+void printObject(Controle_gear gear)
+{
+    printf("\n\n");
+    printf("Controle_gear {\n");
+    printf("  operating_time: %lu\n", gear.operating_time);
+    printf("  start_counter: %lu\n", gear.start_counter);
+    printf("  external_supply_voltage: %u\n", gear.external_supply_voltage);
+    printf("  external_supply_voltage_frequency: %u\n", gear.external_supply_voltage_frequency);
+    printf("  power_factor: %u\n", gear.power_factor);
+    printf("  overall_faliure_condition: %u\n", gear.overall_faliure_condition);
+    printf("  external_supply_undervoltage: %u\n", gear.external_supply_undervoltage);
+    printf("  external_supply_undervoltage_counter: %u\n", gear.external_supply_undervoltage_counter);
+    printf("  external_supply_overvoltage: %u\n", gear.external_supply_overvoltage);
+    printf("  external_supply_overvoltage_counter: %u\n", gear.external_supply_overvoltage_counter);
+    printf("  output_power_limitation: %u\n", gear.output_power_limitation);
+    printf("  output_power_limitation_counter: %u\n", gear.output_power_limitation_counter);
+    printf("  thermal_derating: %u\n", gear.thermal_derating);
+    printf("  thermal_derating_counter: %u\n", gear.thermal_derating_counter);
+    printf("  thermal_shutdown: %u\n", gear.thermal_shutdown);
+    printf("  thermal_shutdown_counter: %u\n", gear.thermal_shutdown_counter);
+    printf("  temperature: %u\n", gear.temperature);
+    printf("  output_current_percent: %u\n", gear.output_current_percent);
+    printf("}\n");
 }

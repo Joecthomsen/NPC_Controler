@@ -33,35 +33,33 @@ void taskTwo(void *parameter)
 {
     while (true)
     {
-        DALI_Status check = check_drivers_commissioned();
+        // DALI_Status check = check_drivers_commissioned();
 
-        if (check == DALI_OK)
-        {
-            printf("All drivers commissioned\n");
-        }
-        else if (check == DALI_ERR_NO_DRIVERS)
-        {
-            printf("No drivers on the bus\n");
-        }
-        else if (check == DALI_ERR_UNCOMMISSIONED_DRIVER)
-        {
-            printf("Uncommissioned driver\n");
-        }
-        else
-        {
-            printf("Unknown error: %d\n", check);
-        }
+        // if (check == DALI_OK)
+        // {
+        //     printf("All drivers commissioned\n");
+        // }
+        // else if (check == DALI_ERR_NO_DRIVERS)
+        // {
+        //     printf("No drivers on the bus\n");
+        // }
+        // else if (check == DALI_ERR_UNCOMMISSIONED_DRIVER)
+        // {
+        //     printf("Uncommissioned driver\n");
+        // }
+        // else
+        // {
+        //     printf("Unknown error: %d\n", check);
+        // }
 
         Controle_gear controle_gear_1 = fetch_controle_gear_data(0x00);
-        printf("OPERATION TIME 1: %lx\n", controle_gear_1.operating_time);
-        printf("START COUNTER 1: %lx\n", controle_gear_1.start_counter);
-        vTaskDelay(2000 / portTICK_PERIOD_MS);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
         Controle_gear controle_gear_2 = fetch_controle_gear_data(0x01);
-        printf("OPERATION TIME 2: %lx\n", controle_gear_2.operating_time);
-        printf("START COUNTER 2: %lx\n", controle_gear_2.start_counter);
+        printObject(controle_gear_1);
+        printObject(controle_gear_2);
 
-        uint8_t driversOnBus = commission_bus();
-        printf("Drivers on bus: %d\n", driversOnBus);
+        // uint8_t driversOnBus = commission_bus();
+        // printf("Drivers on bus: %d\n", driversOnBus);
 
         printf("Turn light off...\n");
         sendDALI_TX(0xFE00);
