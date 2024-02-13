@@ -22,7 +22,8 @@
                 "${workspaceFolder}/components/DALI_commands/include/*",
                 "/home/johannes/esp/esp-idf/components/esp_netif/linux/stubs/include",
                 "${workspaceFolder}/components/components/esp_netif/linux/stubs/include",
-                "${workspaceFolder}/components/DALI_diagnostics_and_maintenance/include"
+                "${workspaceFolder}/components/DALI_diagnostics_and_maintenance/include",
+                "${workspaceFolder}/*"
             ],
             "browse": {
                 "path": [
