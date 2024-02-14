@@ -335,9 +335,9 @@ void init_wifi_provisioning(void)
 
     /* Wait for Wi-Fi connection */
     xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_EVENT, true, true, portMAX_DELAY);
-    while (1)
-    {
-        ESP_LOGI(TAG, "Hello World!");
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-    }
+    // while (1)
+    // {
+    //     ESP_LOGI(TAG, "Hello World!");
+    //     vTaskDelay(1000 / portTICK_PERIOD_MS);
+    // }
 }
