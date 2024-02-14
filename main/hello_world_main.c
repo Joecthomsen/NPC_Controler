@@ -15,6 +15,7 @@
 #include "esp_system.h"
 #include "DALI_transmit.h"
 #include "DALI_addressing.h"
+#include "DALI_diagnostics_and_maintenance.h"
 #include "driver/gptimer.h"
 #include "esp_log.h"
 
@@ -32,26 +33,33 @@ void taskTwo(void *parameter)
 {
     while (true)
     {
-        DALI_Status check = check_drivers_commissioned();
-        if (check == DALI_OK)
-        {
-            printf("All drivers commissioned\n");
-        }
-        else if (check == DALI_ERR_NO_DRIVERS)
-        {
-            printf("No drivers on the bus\n");
-        }
-        else if (check == DALI_ERR_UNCOMMISSIONED_DRIVER)
-        {
-            printf("Uncommissioned driver\n");
-        }
-        else
-        {
-            printf("Unknown error: %d\n", check);
-        }
+        // DALI_Status check = check_drivers_commissioned();
 
-        uint8_t driversOnBus = commission_bus();
-        printf("Drivers on bus: %d\n", driversOnBus);
+        // if (check == DALI_OK)
+        // {
+        //     printf("All drivers commissioned\n");
+        // }
+        // else if (check == DALI_ERR_NO_DRIVERS)
+        // {
+        //     printf("No drivers on the bus\n");
+        // }
+        // else if (check == DALI_ERR_UNCOMMISSIONED_DRIVER)
+        // {
+        //     printf("Uncommissioned driver\n");
+        // }
+        // else
+        // {
+        //     printf("Unknown error: %d\n", check);
+        // }
+
+        Controle_gear controle_gear_1 = fetch_controle_gear_data(0x00);
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        Controle_gear controle_gear_2 = fetch_controle_gear_data(0x01);
+        printObject(controle_gear_1);
+        printObject(controle_gear_2);
+
+        // uint8_t driversOnBus = commission_bus();
+        // printf("Drivers on bus: %d\n", driversOnBus);
 
         printf("Turn light off...\n");
         sendDALI_TX(0xFE00);
@@ -74,66 +82,6 @@ void taskTwo(void *parameter)
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         sendDALI_TX(0x02FE);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // printf("Load ddr1 with value F0\n");
-        // sendDALI_TX(0xA3F0);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // sendDALI_TX(0xFF98); // Query ddr1
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // if (newDataAvailable())
-        // {
-        //     printf("Hex value: %x\n", getNewData());
-        //     clearNewDataFlag();
-        // }
-
-        // printf("Load ddr1 with value 33\n");
-        // sendDALI_TX(0xA333);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // sendDALI_TX(0xFF98); // Query ddr1
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // if (newDataAvailable())
-        // {
-        //     printf("Hex value: %x\n", getNewData());
-        //     clearNewDataFlag();
-        // }
-
-        // printf("Load ddr1 with value 00\n");
-        // sendDALI_TX(0xA300);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // sendDALI_TX(0xFF98); // Query ddr1
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // if (newDataAvailable())
-        // {
-        //     printf("Hex value: %x\n", getNewData());
-        //     clearNewDataFlag();
-        // }
-
-        // printf("Load ddr1 with value AA\n");
-        // sendDALI_TX(0xA3AA);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // sendDALI_TX(0xFF98); // Query ddr1
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // if (newDataAvailable())
-        // {
-        //     printf("Hex value: %x\n", getNewData());
-        //     clearNewDataFlag();
-        // }
-
-        // printf("Load ddr1 with value FF\n");
-        // sendDALI_TX(0xA3FF);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        // sendDALI_TX(0xFF98); // Query ddr1
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-        // if (newDataAvailable())
-        // {
-        //     printf("Hex value: %x\n", getNewData());
-        //     clearNewDataFlag();
-        // }
     }
 }
 

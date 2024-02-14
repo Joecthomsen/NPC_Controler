@@ -53,7 +53,9 @@
         "initializer_list": "c",
         "chrono": "c",
         "cmath": "c",
-        "bitset": "c"
+        "bitset": "c",
+        "diagnostics_and_maintenance.h": "c",
+        "dali_diagnostics_and_maintenance.h": "c"
     },
     "idf.flashType": "UART"
 }
