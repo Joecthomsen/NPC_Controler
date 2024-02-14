@@ -6,6 +6,7 @@
 
 // Prototypes
 DALI_Status read_memory_location(uint8_t short_address, uint8_t memory_bank, uint8_t location, uint8_t *data);
+DALI_Status write_memory_location(uint8_t short_address, uint8_t memory_bank, uint8_t location, uint8_t data);
 void select_memory_bank_location(uint8_t memory_bank, uint8_t location);
 DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time);
 DALI_Status get_start_counter(uint8_t short_address, bit24_t *start_counter);
@@ -36,6 +37,13 @@ Controle_gear fetch_controle_gear_data(uint8_t short_address)
     uint8_t new_thermal_shutdown_counter;
     uint8_t new_temperature;
     uint8_t new_output_current_percent;
+
+    sendDALI_TX(0x0181);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
+    sendDALI_TX(0x0181);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
+
+    write_memory_location(short_address, MEMORY_BANK_205, LOCK_BYTE, 0x55);
 
     dali_status = get_operating_time(short_address, &new_operating_time);
     if (dali_status != DALI_OK)
@@ -109,6 +117,13 @@ Controle_gear fetch_controle_gear_data(uint8_t short_address)
     if (dali_status != DALI_OK)
         printf("Therman derating counter error: %d", dali_status);
 
+    uint8_t locableByte = 0;
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, 0x02, &locableByte);
+    if (dali_status != DALI_OK)
+        printf("Locable byte error: %d", dali_status);
+
+    printf("locableByte: %d\n", locableByte);
+
     controle_gear.operating_time = new_operating_time;
     controle_gear.start_counter = new_start_counter;
     controle_gear.external_supply_voltage = new_external_supply_voltage;
@@ -149,6 +164,27 @@ DALI_Status read_memory_location(uint8_t short_address, uint8_t memory_bank, uin
         printf("No data available FROM OPERATING TIME\n");
     }
     return DALI_OK;
+}
+
+DALI_Status write_memory_location(uint8_t short_address, uint8_t memory_bank, uint8_t location, uint8_t data)
+{
+    DALI_Status dali_status = DALI_OK;
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
+    select_memory_bank_location(memory_bank, location);
+    vTaskDelay(DELAY_BETWEEN_COMMANDS);
+    sendDALI_TX(WRITE_MEMORY_LOCATION + data);
+    vTaskDelay(DELAY_AWAIT_RESPONSE);
+    if (newDataAvailable())
+    {
+        printf("NEW DATA: %x\n", getNewData());
+        clearNewDataFlag();
+    }
+    else
+    {
+        printf("No data available FROM WRITE MEMORY\n");
+        dali_status = DALI_ERR_NO_RESPONSE;
+    }
+    return dali_status;
 }
 
 void select_memory_bank_location(uint8_t memory_bank, uint8_t location)
