@@ -55,7 +55,9 @@
         "cmath": "c",
         "bitset": "c",
         "diagnostics_and_maintenance.h": "c",
-        "dali_diagnostics_and_maintenance.h": "c"
+        "dali_diagnostics_and_maintenance.h": "c",
+        "qrcode.h": "c",
+        "esp_wifi.h": "c"
     },
     "idf.flashType": "UART"
 }
