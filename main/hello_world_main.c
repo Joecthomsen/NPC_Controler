@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
@@ -18,6 +19,8 @@
 #include "DALI_diagnostics_and_maintenance.h"
 #include "driver/gptimer.h"
 #include "esp_log.h"
+#include "Wifi_provisioning.h"
+#include <wifi_provisioning/manager.h>
 
 void taskOne(void *parameter)
 {
@@ -85,11 +88,24 @@ void taskTwo(void *parameter)
     }
 }
 
+void init_wifi_provisioning_task(void *parameter)
+{
+    while (true)
+    {
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+        init_wifi_provisioning();
+        vTaskDelete(NULL);
+    }
+}
+
 void app_main(void)
 {
+
+    init_wifi_provisioning();
     init_DALI_transmit();
 
     xTaskCreatePinnedToCore(taskOne, "task one", 2048, NULL, 2, NULL, 0);
-
     xTaskCreatePinnedToCore(taskTwo, "task two", 2048, NULL, 2, NULL, 0);
+
+    /* Initialize NVS partition */
 }
