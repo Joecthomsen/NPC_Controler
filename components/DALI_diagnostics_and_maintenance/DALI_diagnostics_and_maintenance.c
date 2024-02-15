@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "DALI_diagnostics_and_maintenance.h"
-#include "DALI_transmit.h"
+#include "DALI_communication.h"
 #include "freertos/FreeRTOS.h"
 #include "constants.h"
 
@@ -38,9 +38,9 @@ Controle_gear fetch_controle_gear_data(uint8_t short_address)
     uint8_t new_temperature;
     uint8_t new_output_current_percent;
 
-    sendDALI_TX(0x0181);
+    send_DALI_Tx(0x0181);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(0x0181);
+    send_DALI_Tx(0x0181);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
 
     write_memory_location(short_address, MEMORY_BANK_205, LOCK_BYTE, 0x55);
@@ -150,13 +150,13 @@ DALI_Status read_memory_location(uint8_t short_address, uint8_t memory_bank, uin
 {
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
     select_memory_bank_location(memory_bank, location);
-    sendDALI_TX(READ_MEMORY_LOCATION | (calculate_short_address_standard_cmd(short_address) << 8));
+    send_DALI_Tx(READ_MEMORY_LOCATION | (calculate_short_address_standard_cmd(short_address) << 8));
     vTaskDelay(DELAY_AWAIT_RESPONSE);
-    if (newDataAvailable())
+    if (new_data_available())
     {
-        *data = getNewData();
+        *data = get_new_data();
         printf("DATA fetched: %x\n", *data);
-        clearNewDataFlag();
+        clear_new_data_flag();
     }
     else
     {
@@ -172,12 +172,12 @@ DALI_Status write_memory_location(uint8_t short_address, uint8_t memory_bank, ui
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
     select_memory_bank_location(memory_bank, location);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(WRITE_MEMORY_LOCATION + data);
+    send_DALI_Tx(WRITE_MEMORY_LOCATION + data);
     vTaskDelay(DELAY_AWAIT_RESPONSE);
-    if (newDataAvailable())
+    if (new_data_available())
     {
-        printf("NEW DATA: %x\n", getNewData());
-        clearNewDataFlag();
+        printf("NEW DATA: %x\n", get_new_data());
+        clear_new_data_flag();
     }
     else
     {
@@ -189,9 +189,9 @@ DALI_Status write_memory_location(uint8_t short_address, uint8_t memory_bank, ui
 
 void select_memory_bank_location(uint8_t memory_bank, uint8_t location)
 {
-    sendDALI_TX(DTR0 + location);
+    send_DALI_Tx(DTR0 + location);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(DTR1 + memory_bank);
+    send_DALI_Tx(DTR1 + memory_bank);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
 }
 

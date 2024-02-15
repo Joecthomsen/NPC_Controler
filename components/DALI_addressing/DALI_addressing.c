@@ -1,7 +1,7 @@
 #include "DALI_addressing.h"
 #include "DALI_commands.h"
 #include <math.h>
-#include "DALI_transmit.h"
+#include "DALI_communication.h"
 
 // Prototypes
 address24_t find_lowest_device_address(address24_t start, address24_t end);
@@ -52,11 +52,11 @@ uint8_t commission_bus()
             printf("Short address not verified\n");
         }
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
-        sendDALI_TX(WITHDRAW); // Ensure that the search address is set on the driver, otherwise this will fail. In this case, the search address is set in the function set_search_address.
+        send_DALI_Tx(WITHDRAW); // Ensure that the search address is set on the driver, otherwise this will fail. In this case, the search address is set in the function set_search_address.
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
         counter++;
     }
-    sendDALI_TX(TERMINATE);
+    send_DALI_Tx(TERMINATE);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
     return counter;
 }
@@ -84,7 +84,7 @@ DALI_Status check_drivers_commissioned()
         }
         set_search_address(address);
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
-        sendDALI_TX(WITHDRAW); // Ensure that the search address is set on the driver, otherwise this will fail. In this case, the search address is set in the function set_search_address.
+        send_DALI_Tx(WITHDRAW); // Ensure that the search address is set on the driver, otherwise this will fail. In this case, the search address is set in the function set_search_address.
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
         totalDriversOnBus++;
     }
@@ -98,7 +98,7 @@ DALI_Status check_drivers_commissioned()
         }
         vTaskDelay(DELAY_AWAIT_RESPONSE);
     }
-    sendDALI_TX(TERMINATE);
+    send_DALI_Tx(TERMINATE);
     if (totalDriversOnBus != driversWithShortAddressOnBus)
     {
         return DALI_ERR_UNCOMMISSIONED_DRIVER;
@@ -142,9 +142,9 @@ address24_t find_lowest_device_address(address24_t start, address24_t end)
 void set_all_devices_in_initialize_state()
 {
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(INITIALIZE_ALL_DEVICE);
+    send_DALI_Tx(INITIALIZE_ALL_DEVICE);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(INITIALIZE_ALL_DEVICE);
+    send_DALI_Tx(INITIALIZE_ALL_DEVICE);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
 }
 
@@ -159,9 +159,9 @@ void set_all_devices_in_initialize_state()
  */
 void generate_random_device_addresses()
 {
-    sendDALI_TX(GENERATE_RANDOM_ADDRESS);
+    send_DALI_Tx(GENERATE_RANDOM_ADDRESS);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(GENERATE_RANDOM_ADDRESS);
+    send_DALI_Tx(GENERATE_RANDOM_ADDRESS);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
 }
 
@@ -182,10 +182,10 @@ bool compare_device_address(address24_t address)
 {
     set_search_address(address);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(COMPARE);
+    send_DALI_Tx(COMPARE);
     vTaskDelay(DELAY_AWAIT_RESPONSE);
 
-    return newDataAvailable() ? (clearNewDataFlag(), true) : false;
+    return new_data_available() ? (clear_new_data_flag(), true) : false;
 }
 
 /**
@@ -204,16 +204,16 @@ void program_short_address(address24_t longAddress, uint8_t shortAddress)
 {
     set_search_address(longAddress);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(PROGRAM_SHORT_ADDRESS | (shortAddress << 1));
+    send_DALI_Tx(PROGRAM_SHORT_ADDRESS | (shortAddress << 1));
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
 }
 
 bool verify_short_address(uint8_t shortAddress)
 {
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(VERIFY_SHORT_ADDRESS | (shortAddress << 1));
+    send_DALI_Tx(VERIFY_SHORT_ADDRESS | (shortAddress << 1));
     vTaskDelay(DELAY_AWAIT_RESPONSE);
-    return newDataAvailable() ? (clearNewDataFlag(), true) : false;
+    return new_data_available() ? (clear_new_data_flag(), true) : false;
 }
 
 /**
@@ -232,10 +232,10 @@ void set_search_address(address24_t address)
     uint8_t mByte = (address >> 8) & 0xFF;  // Get the middle bytes
     uint8_t lByte = (address >> 0) & 0xFF;  // Get the low bytes
 
-    sendDALI_TX(SEARCH_ADDRESS_H + hByte);
+    send_DALI_Tx(SEARCH_ADDRESS_H + hByte);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(SEARCH_ADDRESS_M + mByte);
+    send_DALI_Tx(SEARCH_ADDRESS_M + mByte);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
-    sendDALI_TX(SEARCH_ADDRESS_L + lByte);
+    send_DALI_Tx(SEARCH_ADDRESS_L + lByte);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
 }

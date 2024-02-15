@@ -1,4 +1,4 @@
-#include "DALI_transmit.h"
+#include "DALI_communication.h"
 #include "driver/gptimer.h"
 #include "esp_log.h"
 #include "driver/gptimer_types.h"
@@ -32,10 +32,10 @@ gpio_isr_handle_t *handle_rx;
 int totalRxInterrupt = 0;
 
 // Prototypes
-void initGPIO();
-void initTimer();
-uint32_t manchesterEncode(uint16_t data);
-uint8_t percentToDalimapping(uint8_t input);
+void init_GPIO();
+void init_timer();
+uint32_t manchester_encode(uint16_t data);
+uint8_t percent_to_dali_mapping(uint8_t input);
 
 /**
  * @brief Initialize the DALI transmitter.
@@ -47,10 +47,10 @@ uint8_t percentToDalimapping(uint8_t input);
  * @return void
  * @attention Must be called before any other function in this file.
  */
-void init_DALI_transmit()
+void init_DALI_communication()
 {
-    initGPIO();  // Initialize the GPIO configuration
-    initTimer(); // Initialize the timer configuration
+    init_GPIO();  // Initialize the GPIO configuration
+    init_timer(); // Initialize the timer configuration
 
     for (int i = 0; i < 8; i++)
     {
@@ -164,12 +164,12 @@ void (*isr_rx_handler)(void *) = receive_dali_data;
  * @param cmd uint16 data frame to transmit.
  * @return void
  */
-void sendDALI_TX(uint16_t cmd)
+void send_DALI_Tx(uint16_t cmd)
 {
 
     gpio_intr_disable(GPIO_PIN_RX);
 
-    dataToTransmit = manchesterEncode(cmd);
+    dataToTransmit = manchester_encode(cmd);
     if (!timerOn)
     {
         err = gptimer_start(timer_tx);
@@ -291,7 +291,7 @@ static bool transmit_bit_on_timer_alarm(gptimer_handle_t timer, const gptimer_al
  * @param data The 16-bit data frame to be translated.
  * @return The resulting Manchester-encoded 32-bit data frame.
  */
-uint32_t manchesterEncode(uint16_t data)
+uint32_t manchester_encode(uint16_t data)
 {
 
     uint32_t manchesterEncodedData = 0;
@@ -321,7 +321,7 @@ uint32_t manchesterEncode(uint16_t data)
  * @deprecated this function is deprecated and will be removed/edit in a future version.
  * @attention this function is intended to use with Matter project.
  */
-uint8_t percentToDalimapping(uint8_t input)
+uint8_t percent_to_dali_mapping(uint8_t input)
 {
 
     /*
@@ -341,7 +341,7 @@ uint8_t percentToDalimapping(uint8_t input)
     return 2.54 * input + 1;
 }
 
-void initGPIO()
+void init_GPIO()
 {
 
     // Configure the GPIO pin TX
@@ -399,7 +399,7 @@ void initGPIO()
     }
 }
 
-void initTimer()
+void init_timer()
 {
 
     // Init timer config struct - common to both timers
@@ -483,17 +483,17 @@ void initTimer()
         ESP_LOGI(TAG, "Rx Timer enabled in DALI_transmit_init() function");
 }
 
-bool newDataAvailable()
+bool new_data_available()
 {
     return newDataFlag;
 }
 
-void clearNewDataFlag()
+void clear_new_data_flag()
 {
     newDataFlag = false;
 }
 
-uint8_t getNewData()
+uint8_t get_new_data()
 {
 
     uint8_t new_data = 0;

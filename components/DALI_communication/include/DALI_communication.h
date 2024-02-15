@@ -50,11 +50,11 @@ enum State
     STOP_BIT,
 };
 
-void init_DALI_transmit();
-void sendDALI_TX(uint16_t cmd);
-bool newDataAvailable();
-void clearNewDataFlag();
-uint8_t getNewData();
+void init_DALI_communication();
+void send_DALI_Tx(uint16_t cmd);
+bool new_data_available();
+void clear_new_data_flag();
+uint8_t get_new_data();
 
 extern int incrementer;
 extern int incrementer2;
