@@ -36,24 +36,24 @@ void taskTwo(void *parameter)
 {
     while (true)
     {
-        // DALI_Status check = check_drivers_commissioned();
+        DALI_Status check = check_drivers_commissioned();
 
-        // if (check == DALI_OK)
-        // {
-        //     printf("All drivers commissioned\n");
-        // }
-        // else if (check == DALI_ERR_NO_DRIVERS)
-        // {
-        //     printf("No drivers on the bus\n");
-        // }
-        // else if (check == DALI_ERR_UNCOMMISSIONED_DRIVER)
-        // {
-        //     printf("Uncommissioned driver\n");
-        // }
-        // else
-        // {
-        //     printf("Unknown error: %d\n", check);
-        // }
+        if (check == DALI_OK)
+        {
+            printf("All drivers commissioned\n");
+        }
+        else if (check == DALI_ERR_NO_DRIVERS)
+        {
+            printf("No drivers on the bus\n");
+        }
+        else if (check == DALI_ERR_UNCOMMISSIONED_DRIVER)
+        {
+            printf("Uncommissioned driver\n");
+        }
+        else
+        {
+            printf("Unknown error: %d\n", check);
+        }
 
         Controle_gear controle_gear_1 = fetch_controle_gear_data(0x00);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
