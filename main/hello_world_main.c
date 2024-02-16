@@ -22,6 +22,7 @@
 #include "Wifi_provisioning.h"
 #include <wifi_provisioning/manager.h>
 #include "Tcp_server.h"
+#include "../managed_components/espressif__mdns/include/mdns.h"
 
 void taskOne(void *parameter)
 {
@@ -104,6 +105,25 @@ void app_main(void)
 
     init_wifi_provisioning();
     init_DALI_communication();
+
+    // initialize mDNS service
+    esp_err_t err = mdns_init();
+    if (err)
+    {
+        printf("MDNS Init failed: %d\n", err);
+        return;
+    }
+    else
+    {
+        printf("MDNS Init succeeded\n");
+    }
+
+    // set hostname
+    mdns_hostname_set("NPC_Connect");
+    // set default instance
+    mdns_instance_name_set("ESP32C3 TCP Server");
+    // add services
+    mdns_service_add(NULL, "_tcp", "_tcp", 3333, NULL, 0);
 
     xTaskCreate(tcp_server_task, "tcp_server", 4096, NULL, 5, NULL);
 
