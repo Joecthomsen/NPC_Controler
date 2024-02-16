@@ -21,6 +21,7 @@
 #include "esp_log.h"
 #include "Wifi_provisioning.h"
 #include <wifi_provisioning/manager.h>
+#include "Tcp_server.h"
 
 void taskOne(void *parameter)
 {
@@ -103,6 +104,8 @@ void app_main(void)
 
     init_wifi_provisioning();
     init_DALI_communication();
+
+    xTaskCreate(tcp_server_task, "tcp_server", 4096, NULL, 5, NULL);
 
     xTaskCreatePinnedToCore(taskOne, "task one", 2048, NULL, 2, NULL, 0);
     xTaskCreatePinnedToCore(taskTwo, "task two", 2048, NULL, 2, NULL, 0);
