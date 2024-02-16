@@ -25,7 +25,8 @@
                 "${workspaceFolder}/components/DALI_diagnostics_and_maintenance/include",
                 "${workspaceFolder}/*",
                 "${workspaceFolder}/components/Wifi_provisioning/include",
-                "${workspaceFolder}/components/Tcp_server/include"
+                "${workspaceFolder}/components/Tcp_server/include",
+                "${workspaceFolder}/managed_components/**"
             ],
             "browse": {
                 "path": [
