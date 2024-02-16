@@ -12,7 +12,8 @@
 #include "lwip/netdb.h"
 
 #define TAG "TCP_SERVER"
-#define LISTEN_PORT 3333
+
+void message_handler(char *rx_buffer, int len);
 
 void tcp_server_task(void *pvParameters)
 {
@@ -97,4 +98,8 @@ void tcp_server_task(void *pvParameters)
         close(listen_sock);
     }
     vTaskDelete(NULL);
+}
+
+void message_handler(char *rx_buffer, int len)
+{
 }
