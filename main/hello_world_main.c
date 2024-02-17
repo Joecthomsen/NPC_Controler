@@ -24,6 +24,7 @@
 #include "Tcp_server.h"
 #include "../managed_components/espressif__mdns/include/mdns.h"
 #include "mDNS_handler.h"
+// #include "State_manager.h"
 
 void taskOne(void *parameter)
 {
@@ -35,28 +36,10 @@ void taskOne(void *parameter)
     }
 }
 
-void taskTwo(void *parameter)
+void run(void *parameter)
 {
     while (true)
     {
-        DALI_Status check = check_drivers_commissioned();
-
-        if (check == DALI_OK)
-        {
-            printf("All drivers commissioned\n");
-        }
-        else if (check == DALI_ERR_NO_DRIVERS)
-        {
-            printf("No drivers on the bus\n");
-        }
-        else if (check == DALI_ERR_UNCOMMISSIONED_DRIVER)
-        {
-            printf("Uncommissioned driver\n");
-        }
-        else
-        {
-            printf("Unknown error: %d\n", check);
-        }
 
         Controle_gear controle_gear_1 = fetch_controle_gear_data(0x00);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -93,34 +76,31 @@ void taskTwo(void *parameter)
 
 void app_main(void)
 {
-
-    init_wifi_provisioning();
+    init_wifi_provisioning(); // Error handling is already handled in the init function
     init_DALI_communication();
-    mDNS_init();
 
-    // initialize mDNS service
-    // esp_err_t err = mdns_init();
-    // if (err)
-    // {
-    //     printf("MDNS Init failed: %d\n", err);
-    //     return;
-    // }
-    // else
-    // {
-    //     printf("MDNS Init succeeded\n");
-    // }
+    DALI_Status check = check_drivers_commissioned();
 
-    // // set hostname
-    // mdns_hostname_set("NPC_Connect");
-    // // set default instance
-    // mdns_instance_name_set("ESP32C3 TCP Server");
-    // // add services
-    // mdns_service_add(NULL, "_tcp", "_tcp", 3333, NULL, 0);
+    if (check == DALI_OK)
+    {
+        printf("All drivers commissioned\n");
+    }
+    else if (check == DALI_ERR_NO_DRIVERS)
+    {
+        printf("No drivers on the bus\n");
+    }
+    else if (check == DALI_ERR_UNCOMMISSIONED_DRIVER)
+    {
+        printf("Uncommissioned driver\n");
+    }
+    else
+    {
+        printf("Unknown error: %d\n", check);
+    }
 
     xTaskCreate(tcp_server_task, "tcp_server", 4096, NULL, 5, NULL);
-
-    xTaskCreatePinnedToCore(taskOne, "task one", 2048, NULL, 2, NULL, 0);
-    xTaskCreatePinnedToCore(taskTwo, "task two", 2048, NULL, 2, NULL, 0);
+    mDNS_init();
+    xTaskCreatePinnedToCore(run, "task two", 2048, NULL, 2, NULL, 0);
 
     /* Initialize NVS partition */
 }

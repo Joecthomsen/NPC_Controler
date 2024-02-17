@@ -61,7 +61,9 @@
         "esp_event.h": "c",
         "wifi_provisioning.h": "c",
         "string.h": "c",
-        "mdns.h": "c"
+        "mdns.h": "c",
+        "dali_communication.h": "c",
+        "tcp_server.h": "c"
     },
     "idf.flashType": "UART"
 }
