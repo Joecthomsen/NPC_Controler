@@ -71,56 +71,56 @@ Controle_gear fetch_controle_gear_data(uint8_t short_address)
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_UNDERVOLTAGE, &new_external_supply_undervoltage);
     if (dali_status != DALI_OK)
-        printf("External supply undervoltage counter error: %d", dali_status);
+        printf("External supply undervoltage counter error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_UNDERVOLTAGE_COUNTER, &new_external_supply_undervoltage_counter);
     if (dali_status != DALI_OK)
-        printf("External supply undervoltage counter error: %d", dali_status);
+        printf("External supply undervoltage counter error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_OVERVOLTAGE, &new_external_supply_overvoltage);
     if (dali_status != DALI_OK)
-        printf("External supply undervoltage counter error: %d", dali_status);
+        printf("External supply undervoltage counter error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_OVERVOLTAGE_COUNTER, &new_external_supply_overvoltage_counter);
     if (dali_status != DALI_OK)
-        printf("External supply undervoltage counter error: %d", dali_status);
+        printf("External supply undervoltage counter error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_POWER_LIMITATION, &new_output_power_limitation);
     if (dali_status != DALI_OK)
-        printf("Power limitation error: %d", dali_status);
+        printf("Power limitation error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_POWER_LIMITATION_COUNTER, &new_output_power_limitation_counter);
     if (dali_status != DALI_OK)
-        printf("Power limitation counter error: %d", dali_status);
+        printf("Power limitation counter error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_DERATING, &new_thermal_derating);
     if (dali_status != DALI_OK)
-        printf("Therman derating error: %d", dali_status);
+        printf("Therman derating error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_DERATING_COUNTER, &new_thermal_derating_counter);
     if (dali_status != DALI_OK)
-        printf("Therman derating counter error: %d", dali_status);
+        printf("Therman derating counter error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_SHUTDOWN, &new_thermal_shutdown);
     if (dali_status != DALI_OK)
-        printf("Therman derating counter error: %d", dali_status);
+        printf("Therman derating counter error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_SHUTDOWN_COUNTER, &new_thermal_shutdown_counter);
     if (dali_status != DALI_OK)
-        printf("Therman derating counter error: %d", dali_status);
+        printf("Therman derating counter error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, TEMPERATURE, &new_temperature);
     if (dali_status != DALI_OK)
-        printf("Therman derating counter error: %d", dali_status);
+        printf("Therman derating counter error: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_CURRENT_PERCENT, &new_output_current_percent);
     if (dali_status != DALI_OK)
-        printf("Therman derating counter error: %d", dali_status);
+        printf("Therman derating counter error: %d\n", dali_status);
 
     uint8_t locableByte = 0;
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, 0x02, &locableByte);
     if (dali_status != DALI_OK)
-        printf("Locable byte error: %d", dali_status);
+        printf("Locable byte error: %d\n", dali_status);
 
     printf("locableByte: %d\n", locableByte);
 

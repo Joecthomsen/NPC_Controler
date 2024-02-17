@@ -3,10 +3,9 @@
 
 #include "driver/gpio.h"
 
-#define STATE_MANAGER_GPIO_PIN_GREEN GPIO_NUM_7
-#define STATE_MANAGER_GPIO_PIN_YELLOW GPIO_NUM_6
-#define STATE_MANAGER_GPIO_PIN_BLUE GPIO_NUM_5
-#define STATE_MANAGER_GPIO_PIN_RED GPIO_NUM_4
+#define STATE_MANAGER_GPIO_PIN_BLUE GPIO_NUM_4
+#define STATE_MANAGER_GPIO_PIN_RED GPIO_NUM_5
+
 #define STATE_MANAGER_INTERRUPT_TYPE GPIO_INTR_DISABLE
 #define STATE_MANAGER_PIN_DIRECTION GPIO_MODE_OUTPUT
 #define STATE_MANAGER_PIN_PULLUP GPIO_PULLUP_DISABLE
@@ -27,5 +26,6 @@ typedef enum State_Machine
 void set_state(State_Machine state);
 State_Machine get_state();
 void init_state_manager();
+void state_task(void *parameter);
 
 #endif /* STATE_MANAGER_H */

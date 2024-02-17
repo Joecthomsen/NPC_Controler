@@ -24,7 +24,7 @@
 #include "Tcp_server.h"
 #include "../managed_components/espressif__mdns/include/mdns.h"
 #include "mDNS_handler.h"
-// #include "State_manager.h"
+#include "State_manager.h"
 
 void taskOne(void *parameter)
 {
@@ -76,6 +76,10 @@ void run(void *parameter)
 
 void app_main(void)
 {
+    // init_state_manager();
+    init_state_manager();
+    xTaskCreate(state_task, "state_task", 512, NULL, 5, NULL);
+
     init_wifi_provisioning(); // Error handling is already handled in the init function
     init_DALI_communication();
 
