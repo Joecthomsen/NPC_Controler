@@ -13,6 +13,14 @@
 
 #define TAG "TCP_SERVER"
 
+typedef enum
+{
+    EVENT_NONE,
+    EVENT_COMMISSION_DALI_BUS,
+} event_type_t;
+
+static event_type_t current_event = EVENT_NONE;
+
 void message_handler(char *rx_buffer, int len);
 
 void tcp_server_task(void *pvParameters)
@@ -102,4 +110,8 @@ void tcp_server_task(void *pvParameters)
 
 void message_handler(char *rx_buffer, int len)
 {
+    if (strcmp(rx_buffer, "COMMISION_DALI_BUS") == 0)
+    {
+        current_event = EVENT_COMMISSION_DALI_BUS;
+    }
 }

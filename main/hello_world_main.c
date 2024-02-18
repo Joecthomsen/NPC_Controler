@@ -41,6 +41,17 @@ void run(void *parameter)
 {
     while (true)
     {
+        State_Machine current_state = get_state();
+        switch (current_state)
+        {
+        case STATE_SYSTEM_OK:
+            printf("System OK\n");
+            break;
+
+        default:
+            break;
+        }
+
         Controle_gear controle_gear_1 = fetch_controle_gear_data(0x00);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         Controle_gear controle_gear_2 = fetch_controle_gear_data(0x01);
