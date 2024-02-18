@@ -8,6 +8,7 @@
 // #include "qrcode.h"
 #include "esp_log.h"
 #include <string.h>
+#include "State_manager.h"
 
 // Prototypes
 static void event_handler(void *arg, esp_event_base_t event_base, int32_t event_id, void *event_data);
@@ -16,6 +17,7 @@ esp_err_t custom_prov_data_handler(uint32_t session_id, const uint8_t *inbuf, ss
 static void wifi_prov_print_qr(const char *name, const char *username, const char *pop, const char *transport);
 
 static const char *TAG = "app";
+bool provisioned = false;
 
 /* Signal Wi-Fi events on this event-group */
 const int WIFI_CONNECTED_EVENT = BIT0;
@@ -93,9 +95,15 @@ static void event_handler(void *arg, esp_event_base_t event_base,
             break;
         case WIFI_EVENT_AP_STACONNECTED:
             ESP_LOGI(TAG, "SoftAP transport: Connected!");
+            set_state(STATE_STARTUP_WIFI_CONNECT);
             break;
         case WIFI_EVENT_AP_STADISCONNECTED:
             ESP_LOGI(TAG, "SoftAP transport: Disconnected!");
+            // bool provisioned = false;
+            /* Let's find out if the device is provisioned */
+            // ESP_ERROR_CHECK(wifi_prov_mgr_is_provisioned(&provisioned));
+            if (!provisioned)
+                set_state(STATE_STARTUP_AWAIT_WIFI_PROVISIONING);
             break;
 
         default:
@@ -107,6 +115,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
         ESP_LOGI(TAG, "Connected with IP Address:" IPSTR, IP2STR(&event->ip_info.ip));
         /* Signal main application to continue execution */
+        provisioned = true;
         xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_EVENT);
     }
     else if (event_base == PROTOCOMM_SECURITY_SESSION_EVENT)
@@ -130,9 +139,19 @@ static void event_handler(void *arg, esp_event_base_t event_base,
 
 static void wifi_init_sta(void)
 {
+    esp_err_t res;
     /* Start Wi-Fi in station mode */
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA));
-    ESP_ERROR_CHECK(esp_wifi_start());
+    res = esp_wifi_start();
+    // ESP_ERROR_CHECK(esp_wifi_start());
+    if (res != ESP_OK)
+    {
+        set_state(STATE_NO_WIFI);
+    }
+    else
+    {
+        set_state(STATE_STARTUP_INIT_DALI_COMMUNICATION);
+    }
 }
 
 static void get_device_service_name(char *service_name, size_t max)
@@ -249,7 +268,7 @@ void init_wifi_provisioning(void)
      * configuration parameters set above */
     ESP_ERROR_CHECK(wifi_prov_mgr_init(config));
 
-    bool provisioned = false;
+    //    bool provisioned = false;
     /* Let's find out if the device is provisioned */
     ESP_ERROR_CHECK(wifi_prov_mgr_is_provisioned(&provisioned));
 
@@ -257,6 +276,7 @@ void init_wifi_provisioning(void)
     if (!provisioned)
     {
         ESP_LOGI(TAG, "Starting provisioning");
+        set_state(STATE_STARTUP_AWAIT_WIFI_PROVISIONING);
 
         /* What is the Device Service Name that we want
          * This translates to :
@@ -330,6 +350,7 @@ void init_wifi_provisioning(void)
     else
     {
         ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
+        // set_state(STATE_STARTUP_WIFI_CONNECT);
 
         /* We don't need the manager as device is already provisioned,
          * so let's release it's resources */

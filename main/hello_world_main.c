@@ -79,22 +79,30 @@ void app_main(void)
     // init_state_manager();
     init_state_manager();
     xTaskCreate(state_task, "state_task", 512, NULL, 5, NULL);
-
     init_wifi_provisioning(); // Error handling is already handled in the init function
+    set_state(STATE_STARTUP_INIT_DALI_COMMUNICATION);
     init_DALI_communication();
-
+    set_state(STATE_STARTUP_ANALYZE_DALI_BUS);
     DALI_Status check = check_drivers_commissioned();
 
     if (check == DALI_OK)
     {
+        set_state(STATE_SYSTEM_OK);
         printf("All drivers commissioned\n");
     }
-    else if (check == DALI_ERR_NO_DRIVERS)
+    else if (check == DALI_ERR_BUS_NOT_COMMISIONED)
     {
-        printf("No drivers on the bus\n");
+        set_state(STATE_BUS_NOT_COMMISIONED);
+        printf("Bus not commissioned\n");
     }
-    else if (check == DALI_ERR_UNCOMMISSIONED_DRIVER)
+    else if (check == DALI_ERR_NO_RESPONSE_ON_BUS)
     {
+        set_state(STATE_NO_RESPONSE_ON_BUS);
+        printf("No response on the bus\n");
+    }
+    else if (check == DALI_ERR_BUS_CORRUPTED)
+    {
+        set_state(STATE_CORRUPTED_DALI_BUS);
         printf("Uncommissioned driver\n");
     }
     else
