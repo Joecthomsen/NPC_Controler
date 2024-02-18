@@ -84,6 +84,7 @@ void state_task(void *parameter)
         case STATE_NO_WIFI:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            break;
 
         default:
             ESP_LOGE("State_manager", "Unknown state error");

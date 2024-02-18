@@ -25,6 +25,7 @@
 #include "../managed_components/espressif__mdns/include/mdns.h"
 #include "mDNS_handler.h"
 #include "State_manager.h"
+#include "Nvs_handler.h"
 
 void taskOne(void *parameter)
 {
@@ -77,11 +78,17 @@ void app_main(void)
 {
     init_state_manager();
     xTaskCreate(state_task, "state_task", 512, NULL, 5, NULL);
+    init_nvs_handler();
     init_wifi_provisioning(); // Error handling is already handled in the init function
     set_state(STATE_STARTUP_INIT_DALI_COMMUNICATION);
     init_DALI_communication();
     set_state(STATE_STARTUP_ANALYZE_DALI_BUS);
     DALI_Status check = check_drivers_commissioned();
+
+    uint8_t masterValue = 210;
+    nvs_write_uint8("GigaTest", masterValue);
+
+    printf("Value read: %d\n", nvs_read_uint8("GigaTest"));
 
     if (check == DALI_OK)
     {
