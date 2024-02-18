@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include "Memory_bank_handler.h"
+#include "DALI_memory_bank_handler.h"
 #include "DALI_communication.h"
 
 void select_memory_bank_location(uint8_t memory_bank, uint8_t location);
@@ -90,4 +90,34 @@ uint8_t calculate_short_address_standard_cmd(uint8_t short_address)
     uint8_t result = 0;
     result = (short_address << 1) + 1;
     return result;
+}
+
+uint64_t read_manufactor_id(uint8_t short_address)
+{
+    uint8_t MSB;
+    uint8_t manufactor_id_2;
+    uint8_t manufactor_id_3;
+    uint8_t manufactor_id_4;
+    uint8_t manufactor_id_5;
+    uint8_t manufactor_id_6;
+    uint8_t manufactor_id_7;
+    uint8_t LSB;
+
+    read_memory_location(short_address, 0x00, 0x0E, &MSB);
+    read_memory_location(short_address, 0x00, 0x0B, &manufactor_id_2);
+    read_memory_location(short_address, 0x00, 0x0C, &manufactor_id_3);
+    read_memory_location(short_address, 0x00, 0x0D, &manufactor_id_4);
+    read_memory_location(short_address, 0x00, 0x0F, &manufactor_id_5);
+    read_memory_location(short_address, 0x00, 0x11, &manufactor_id_6);
+    read_memory_location(short_address, 0x00, 0x12, &manufactor_id_7);
+    read_memory_location(short_address, 0x00, 0x13, &LSB);
+
+    return ((uint64_t)MSB << 0x38U) |
+           ((uint64_t)manufactor_id_2 << 0x30U) |
+           ((uint64_t)manufactor_id_3 << 0x28U) |
+           ((uint64_t)manufactor_id_4 << 0x20U) |
+           ((uint64_t)manufactor_id_5 << 0x18U) |
+           ((uint64_t)manufactor_id_6 << 0x10U) |
+           ((uint64_t)manufactor_id_7 << 0x8U) |
+           (uint64_t)LSB;
 }

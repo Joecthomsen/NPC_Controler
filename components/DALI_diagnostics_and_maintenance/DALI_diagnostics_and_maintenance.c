@@ -3,12 +3,7 @@
 #include "DALI_communication.h"
 #include "freertos/FreeRTOS.h"
 #include "constants.h"
-#include "Memory_bank_handler.h"
-
-// Prototypes
-// DALI_Status read_memory_location(uint8_t short_address, uint8_t memory_bank, uint8_t location, uint8_t *data);
-// DALI_Status write_memory_location(uint8_t short_address, uint8_t memory_bank, uint8_t location, uint8_t data);
-// void select_memory_bank_location(uint8_t memory_bank, uint8_t location);
+#include "DALI_memory_bank_handler.h"
 
 DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time);
 DALI_Status get_start_counter(uint8_t short_address, bit24_t *start_counter);
@@ -248,36 +243,6 @@ DALI_Status get_external_supply_voltage(uint8_t short_address, uint16_t *externa
     *external_supply_voltage |= (external_supply_voltage_MSB << 0x08) | (external_supply_voltage_LSB);
 
     return dali_status;
-}
-
-uint64_t read_manufactor_id(uint8_t short_address)
-{
-    uint8_t MSB;
-    uint8_t manufactor_id_2;
-    uint8_t manufactor_id_3;
-    uint8_t manufactor_id_4;
-    uint8_t manufactor_id_5;
-    uint8_t manufactor_id_6;
-    uint8_t manufactor_id_7;
-    uint8_t LSB;
-
-    read_memory_location(short_address, 0x00, 0x0E, &MSB);
-    read_memory_location(short_address, 0x00, 0x0B, &manufactor_id_2);
-    read_memory_location(short_address, 0x00, 0x0C, &manufactor_id_3);
-    read_memory_location(short_address, 0x00, 0x0D, &manufactor_id_4);
-    read_memory_location(short_address, 0x00, 0x0F, &manufactor_id_5);
-    read_memory_location(short_address, 0x00, 0x11, &manufactor_id_6);
-    read_memory_location(short_address, 0x00, 0x12, &manufactor_id_7);
-    read_memory_location(short_address, 0x00, 0x13, &LSB);
-
-    return ((uint64_t)MSB << 0x38U) |
-           ((uint64_t)manufactor_id_2 << 0x30U) |
-           ((uint64_t)manufactor_id_3 << 0x28U) |
-           ((uint64_t)manufactor_id_4 << 0x20U) |
-           ((uint64_t)manufactor_id_5 << 0x18U) |
-           ((uint64_t)manufactor_id_6 << 0x10U) |
-           ((uint64_t)manufactor_id_7 << 0x8U) |
-           (uint64_t)LSB;
 }
 
 /**
