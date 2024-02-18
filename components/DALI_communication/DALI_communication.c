@@ -317,7 +317,7 @@ uint32_t manchester_encode(uint16_t data)
  * @param input The 8-bit data frame representing the percentage (1-100).
  * @return The resulting 8-bit DALI brightness mapping (1-254).
  * @deprecated this function is deprecated and will be removed/edit in a future version.
- * @attention this function is intended to use with Matter project.
+ * @attention this function is intended to use for dimming purposes.
  */
 uint8_t percent_to_dali_mapping(uint8_t input)
 {

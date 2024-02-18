@@ -64,7 +64,8 @@
         "mdns.h": "c",
         "dali_communication.h": "c",
         "tcp_server.h": "c",
-        "state_manager.h": "c"
+        "state_manager.h": "c",
+        "complex": "c"
     },
     "idf.flashType": "UART"
 }

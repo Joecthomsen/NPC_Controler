@@ -5,6 +5,13 @@
 #include "nvs.h"
 #include "esp_log.h"
 
+/**
+ * @brief Initialize the NVS flash storage partition
+ *
+ * This initializes the default NVS partition defined in the ESP-IDF.
+ * It will first try to mount the partition. If that fails due to
+ * corrupt flash or first boot, it will erase the partition and recreate it.
+ */
 void init_nvs_handler()
 {
     esp_err_t ret = nvs_flash_init();
@@ -19,6 +26,15 @@ void init_nvs_handler()
     }
 }
 
+/**
+ * @brief Write a uint8_t value to NVS storage
+ *
+ * This opens an NVS handle, writes the value under the given key,
+ * commits and closes the handle.
+ *
+ * @param key Null-terminated string key to store value under
+ * @param value The uint8_t value to store
+ */
 void nvs_write_uint8(const char *key, uint8_t value)
 {
     nvs_handle_t my_handle;
@@ -43,6 +59,15 @@ void nvs_write_uint8(const char *key, uint8_t value)
     }
 }
 
+/**
+ * @brief Read a uint8_t value from NVS storage
+ *
+ * This opens an NVS handle, reads the value under the given key,
+ * and closes the handle.
+ *
+ * @param key Null-terminated string key to read value from
+ * @return uint8_t The value stored under the key
+ */
 uint8_t nvs_read_uint8(const char *key)
 {
     nvs_handle_t my_handle;
@@ -60,23 +85,3 @@ uint8_t nvs_read_uint8(const char *key)
     nvs_close(my_handle);
     return value;
 }
-
-// bool nvs_value_exists(const char *key)
-// {
-//     nvs_handle_t handle;
-//     int32_t value;
-//     esp_err_t err = nvs_get_i32(handle, key, &value);
-
-//     if (err == ESP_OK)
-//     {
-//         return true;
-//     }
-//     else if (err == ESP_ERR_NVS_NOT_FOUND)
-//     {
-//         return false;
-//     }
-//     else
-//     {
-//         return false;
-//     }
-// }

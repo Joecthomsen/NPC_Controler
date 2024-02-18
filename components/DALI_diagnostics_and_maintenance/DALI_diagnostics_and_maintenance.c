@@ -13,7 +13,12 @@ DALI_Status get_start_counter(uint8_t short_address, bit24_t *start_counter);
 DALI_Status get_external_supply_voltage(uint8_t short_address, uint16_t *external_supply_voltage);
 uint8_t calculate_short_address_standard_cmd(uint8_t short_address);
 
-// Functions
+/**
+ * @brief Fetch diagnostics data from a DALI control gear
+ *
+ * @param short_address Control gear short address
+ * @return Controle_gear Struct containing diagnostics data
+ */
 Controle_gear fetch_controle_gear_data(uint8_t short_address)
 {
     Controle_gear controle_gear;
@@ -146,6 +151,15 @@ Controle_gear fetch_controle_gear_data(uint8_t short_address)
     return controle_gear;
 }
 
+/**
+ * @brief Read a memory location from a DALI device
+ *
+ * @param short_address DALI device short address
+ * @param memory_bank Memory bank to read from
+ * @param location Location within memory bank
+ * @param data Pointer to store the read data
+ * @return DALI_Status DALI_OK if successful
+ */
 DALI_Status read_memory_location(uint8_t short_address, uint8_t memory_bank, uint8_t location, uint8_t *data)
 {
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
@@ -166,6 +180,15 @@ DALI_Status read_memory_location(uint8_t short_address, uint8_t memory_bank, uin
     return DALI_OK;
 }
 
+/**
+ * @brief Write data to a memory location on a DALI device
+ *
+ * @param short_address DALI device short address
+ * @param memory_bank Memory bank to write to
+ * @param location Location within memory bank
+ * @param data Data byte to write
+ * @return DALI_Status DALI_OK if successful
+ */
 DALI_Status write_memory_location(uint8_t short_address, uint8_t memory_bank, uint8_t location, uint8_t data)
 {
     DALI_Status dali_status = DALI_OK;
@@ -187,6 +210,12 @@ DALI_Status write_memory_location(uint8_t short_address, uint8_t memory_bank, ui
     return dali_status;
 }
 
+/**
+ * @brief Select a DALI device memory bank and location
+ *
+ * @param memory_bank Memory bank to select
+ * @param location Location within memory bank to select
+ */
 void select_memory_bank_location(uint8_t memory_bank, uint8_t location)
 {
     send_DALI_Tx(DTR0 + location);
@@ -195,6 +224,13 @@ void select_memory_bank_location(uint8_t memory_bank, uint8_t location)
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
 }
 
+/**
+ * @brief Get operating hours from DALI device
+ *
+ * @param short_address DALI device short address
+ * @param operating_time Pointer to uint32_t to store operating hours
+ * @return DALI_Status DALI_OK if successful
+ */
 DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time)
 {
     uint8_t operating_time_MSB = 0;
@@ -225,6 +261,13 @@ DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time)
     return dali_status;
 }
 
+/**
+ * @brief Get start counter from DALI device
+ *
+ * @param short_address DALI device short address
+ * @param start_counter Pointer to 24-bit value to store start counter
+ * @return DALI_Status DALI_OK if successful
+ */
 DALI_Status get_start_counter(uint8_t short_address, bit24_t *start_counter)
 {
     uint8_t start_counter_MSB;
@@ -249,6 +292,13 @@ DALI_Status get_start_counter(uint8_t short_address, bit24_t *start_counter)
     return dali_status;
 }
 
+/**
+ * @brief Get external supply voltage from DALI device
+ *
+ * @param short_address DALI device short address
+ * @param external_supply_voltage Pointer to 16-bit value to store voltage
+ * @return DALI_Status DALI_OK if successful
+ */
 DALI_Status get_external_supply_voltage(uint8_t short_address, uint16_t *external_supply_voltage)
 {
     uint8_t external_supply_voltage_MSB;
@@ -269,6 +319,12 @@ DALI_Status get_external_supply_voltage(uint8_t short_address, uint16_t *externa
 }
 
 // TODO maybe move this to DALI transmit?
+/**
+ * @brief Calculate short address command for standard DALI commands
+ *
+ * @param short_address DALI device short address
+ * @return uint8_t Short address command byte
+ */
 uint8_t calculate_short_address_standard_cmd(uint8_t short_address)
 {
     uint8_t result = 0;
@@ -276,6 +332,11 @@ uint8_t calculate_short_address_standard_cmd(uint8_t short_address)
     return result;
 }
 
+/**
+ * @brief Print diagnostics data struct to console
+ *
+ * @param gear Controle_gear struct to print
+ */
 void printObject(Controle_gear gear)
 {
     printf("\n\n");

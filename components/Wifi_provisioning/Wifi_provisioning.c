@@ -28,7 +28,16 @@ static EventGroupHandle_t wifi_event_group;
 #define PROV_TRANSPORT_BLE "ble"
 #define QRCODE_BASE_URL "https://espressif.github.io/esp-jumpstart/qrcode.html"
 
-/* Event handler for catching system events */
+/**
+ * @brief Event handler for WiFi events
+ *
+ * This function gets called by the WiFi driver on WiFi events.
+ *
+ * @param arg User data (not used)
+ * @param event_base Event base of WiFi event
+ * @param event_id Event ID of WiFi event
+ * @param event_data Data associated with WiFi event
+ */
 static void event_handler(void *arg, esp_event_base_t event_base,
                           int32_t event_id, void *event_data)
 {
@@ -216,17 +225,6 @@ static void wifi_prov_print_qr(const char *name, const char *username, const cha
 
 void init_wifi_provisioning(void)
 {
-    // esp_err_t ret = nvs_flash_init();
-    // if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    // {
-    //     /* NVS partition was truncated
-    //      * and needs to be erased */
-    //     ESP_ERROR_CHECK(nvs_flash_erase());
-
-    //     /* Retry nvs_flash_init */
-    //     ESP_ERROR_CHECK(nvs_flash_init());
-    // }
-
     /* Initialize TCP/IP */
     ESP_ERROR_CHECK(esp_netif_init());
 
