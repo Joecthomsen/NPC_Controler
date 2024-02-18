@@ -40,7 +40,6 @@ void run(void *parameter)
 {
     while (true)
     {
-
         Controle_gear controle_gear_1 = fetch_controle_gear_data(0x00);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
         Controle_gear controle_gear_2 = fetch_controle_gear_data(0x01);
@@ -76,7 +75,6 @@ void run(void *parameter)
 
 void app_main(void)
 {
-    // init_state_manager();
     init_state_manager();
     xTaskCreate(state_task, "state_task", 512, NULL, 5, NULL);
     init_wifi_provisioning(); // Error handling is already handled in the init function

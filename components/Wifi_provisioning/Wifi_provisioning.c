@@ -350,7 +350,6 @@ void init_wifi_provisioning(void)
     else
     {
         ESP_LOGI(TAG, "Already provisioned, starting Wi-Fi STA");
-        // set_state(STATE_STARTUP_WIFI_CONNECT);
 
         /* We don't need the manager as device is already provisioned,
          * so let's release it's resources */

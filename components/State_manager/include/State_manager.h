@@ -1,5 +1,7 @@
-#ifndef STATE_MANAGER_H
-#define STATE_MANAGER_H
+// #ifndef STATE_MANAGER_H
+// #define STATE_MANAGER_H
+
+#pragma once
 
 #include "driver/gpio.h"
 
@@ -28,9 +30,9 @@ typedef enum State_Machine
     STATE_SYSTEM_OK,
 } State_Machine;
 
-void set_state(State_Machine state);
+void set_state(int state);
 State_Machine get_state();
 void init_state_manager();
 void state_task(void *parameter);
 
-#endif /* STATE_MANAGER_H */
+// #endif /* STATE_MANAGER_H */

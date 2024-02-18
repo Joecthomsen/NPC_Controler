@@ -3,7 +3,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 
-State_Machine state_machine = STATE_STARTUP_WIFI_CONNECT;
+int state_machine = STATE_STARTUP_WIFI_CONNECT;
 bool state_manager_inited = false;
 
 void state_task(void *parameter)
@@ -93,7 +93,7 @@ void state_task(void *parameter)
     }
 }
 
-void set_state(State_Machine new_state)
+void set_state(int new_state)
 {
     if (state_manager_inited == false)
     {

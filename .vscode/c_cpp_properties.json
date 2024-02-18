@@ -26,7 +26,8 @@
                 "${workspaceFolder}/*",
                 "${workspaceFolder}/components/Wifi_provisioning/include",
                 "${workspaceFolder}/components/Tcp_server/include",
-                "${workspaceFolder}/managed_components/**"
+                "${workspaceFolder}/managed_components/**",
+                "${workspaceFolder}/components/State_manager/include"
             ],
             "browse": {
                 "path": [
