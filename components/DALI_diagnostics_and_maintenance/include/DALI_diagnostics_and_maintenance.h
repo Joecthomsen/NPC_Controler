@@ -1,11 +1,5 @@
 #include <stdint.h>
 
-// Commands
-#define DTR0 0xA300
-#define DTR1 0xC300
-#define READ_MEMORY_LOCATION 0x00C5U // 00 is the device.
-#define WRITE_MEMORY_LOCATION 0xC700U
-
 // Memory bank 205 addresses
 #define MEMORY_BANK_205 205
 #define LOCK_BYTE 0x02U
