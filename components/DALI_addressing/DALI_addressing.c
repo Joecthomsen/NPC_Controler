@@ -101,11 +101,18 @@ DALI_Status check_drivers_commissioned()
     send_DALI_Tx(TERMINATE);
     if (totalDriversOnBus != driversWithShortAddressOnBus)
     {
-        return DALI_ERR_UNCOMMISSIONED_DRIVER;
+        if (driversWithShortAddressOnBus == 0)
+        {
+            return DALI_ERR_BUS_NOT_COMMISIONED;
+        }
+        else
+        {
+            return DALI_ERR_BUS_CORRUPTED;
+        }
     }
     else if (totalDriversOnBus == 0)
     {
-        return DALI_ERR_NO_DRIVERS;
+        return DALI_ERR_NO_RESPONSE_ON_BUS;
     }
     else
     {

@@ -75,7 +75,6 @@ void init_DALI_communication()
  */
 void receive_dali_data(void *arg)
 {
-
     gptimer_get_raw_count(timer_rx, &currentTime);
 
     gpio_intr_disable(GPIO_PIN_RX);
@@ -166,7 +165,6 @@ void (*isr_rx_handler)(void *) = receive_dali_data;
  */
 void send_DALI_Tx(uint16_t cmd)
 {
-
     gpio_intr_disable(GPIO_PIN_RX);
 
     dataToTransmit = manchester_encode(cmd);
