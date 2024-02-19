@@ -92,6 +92,7 @@ uint8_t calculate_short_address_standard_cmd(uint8_t short_address)
     return result;
 }
 
+// TODO add comment and error handling (DALI_Status)
 uint64_t read_manufactor_id(uint8_t short_address)
 {
     uint8_t MSB;
