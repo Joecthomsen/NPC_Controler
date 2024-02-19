@@ -27,7 +27,9 @@
                 "${workspaceFolder}/components/Wifi_provisioning/include",
                 "${workspaceFolder}/components/Tcp_server/include",
                 "${workspaceFolder}/managed_components/**",
-                "${workspaceFolder}/components/State_manager/include"
+                "${workspaceFolder}/components/State_manager/include",
+                "${workspaceFolder}/components/DALI_memory_bank_handler/include",
+                "${workspaceFolder}/components/components/esp_driver_gpio/include"
             ],
             "browse": {
                 "path": [
