@@ -65,7 +65,10 @@
         "dali_communication.h": "c",
         "tcp_server.h": "c",
         "state_manager.h": "c",
-        "complex": "c"
+        "complex": "c",
+        "system_error": "c",
+        "type_traits": "c",
+        "utility": "c"
     },
     "idf.flashType": "UART"
 }

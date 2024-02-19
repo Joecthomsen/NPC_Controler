@@ -6,11 +6,11 @@
 // Prototypes
 address24_t find_lowest_device_address(address24_t start, address24_t end);
 bool compare_device_address(address24_t address);
-void set_search_address(address24_t address);
-void set_all_devices_in_initialize_state();
+// void set_search_address(address24_t address);
+//  void set_all_devices_in_initialize_state();
 void generate_random_device_addresses();
 void program_short_address(address24_t longAddress, uint8_t shortAddress);
-bool verify_short_address(uint8_t shortAddress);
+// bool verify_short_address(uint8_t shortAddress);
 
 /**
  * @brief Commission all DALI drivers on the bus by assigning short addresses
