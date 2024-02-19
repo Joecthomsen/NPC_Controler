@@ -30,7 +30,7 @@
 
 typedef uint32_t bit24_t;
 
-typedef struct Controle_gear
+typedef struct Controle_gear_values_t
 {
     uint32_t operating_time;
     bit24_t start_counter;
@@ -50,8 +50,8 @@ typedef struct Controle_gear
     uint8_t thermal_shutdown_counter;
     uint8_t temperature;
     uint8_t output_current_percent;
-} Controle_gear;
+} Controle_gear_values_t;
 
-Controle_gear fetch_controle_gear_data(uint8_t short_address);
+Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address);
 
-void printObject(Controle_gear controle_gear);
+void printObject(Controle_gear_values_t controle_gear);

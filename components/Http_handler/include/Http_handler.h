@@ -12,4 +12,4 @@ typedef enum Http_status
     HTTP_NOT_IMPLEMENTED = 501
 } Http_status;
 
-Http_status post_control_gear_status(Controle_gear *controle_gear);
+Http_status post_control_gear_status(Controle_gear_values_t *controle_gear);
