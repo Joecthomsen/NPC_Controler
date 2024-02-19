@@ -1,7 +1,6 @@
 #include <stdio.h>
-#include "Synchronizer.h"
+#include "API.h"
 
 void func(void)
 {
-
 }
