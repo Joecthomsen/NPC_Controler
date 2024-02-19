@@ -52,9 +52,9 @@ void run(void *parameter)
             break;
         }
 
-        Controle_gear controle_gear_1 = fetch_controle_gear_data(0x00);
+        Controle_gear_values_t controle_gear_1 = fetch_controle_gear_data(0x00);
         vTaskDelay(1000 / portTICK_PERIOD_MS);
-        Controle_gear controle_gear_2 = fetch_controle_gear_data(0x01);
+        Controle_gear_values_t controle_gear_2 = fetch_controle_gear_data(0x01);
         printObject(controle_gear_1);
         printObject(controle_gear_2);
 

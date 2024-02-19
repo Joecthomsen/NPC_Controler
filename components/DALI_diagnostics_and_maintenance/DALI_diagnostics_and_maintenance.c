@@ -17,9 +17,9 @@ uint64_t read_manufactor_id(uint8_t short_address);
  * @param short_address Control gear short address
  * @return Controle_gear Struct containing diagnostics data
  */
-Controle_gear fetch_controle_gear_data(uint8_t short_address)
+Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
 {
-    Controle_gear controle_gear;
+    Controle_gear_values_t controle_gear;
     DALI_Status dali_status;
 
     printf("Manufactor ID: %llx\n", read_manufactor_id(short_address));
@@ -248,12 +248,12 @@ DALI_Status get_external_supply_voltage(uint8_t short_address, uint16_t *externa
 /**
  * @brief Print diagnostics data struct to console
  *
- * @param gear Controle_gear struct to print
+ * @param gear Controle_gear_values_t struct to print
  */
-void printObject(Controle_gear gear)
+void printObject(Controle_gear_values_t gear)
 {
     printf("\n\n");
-    printf("Controle_gear {\n");
+    printf("Controle_gear_values_t {\n");
     printf("  operating_time: %lu\n", gear.operating_time);
     printf("  start_counter: %lu\n", gear.start_counter);
     printf("  external_supply_voltage: %u\n", gear.external_supply_voltage);

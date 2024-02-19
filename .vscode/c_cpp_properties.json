@@ -29,7 +29,8 @@
                 "${workspaceFolder}/managed_components/**",
                 "${workspaceFolder}/components/State_manager/include",
                 "${workspaceFolder}/components/DALI_memory_bank_handler/include",
-                "${workspaceFolder}/components/components/esp_driver_gpio/include"
+                "${workspaceFolder}/components/components/esp_driver_gpio/include",
+                "${workspaceFolder}/components/API/include"
             ],
             "browse": {
                 "path": [
