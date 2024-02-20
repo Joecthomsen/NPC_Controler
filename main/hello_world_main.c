@@ -41,10 +41,10 @@ void run(void *parameter)
 {
     while (true)
     {
-        State_Machine current_state = get_state();
+        State_t current_state = get_state();
         switch (current_state)
         {
-        case STATE_SYSTEM_OK:
+        case SYSTEM_RUNNING_STATE:
             printf("System OK\n");
             break;
 
@@ -91,34 +91,34 @@ void app_main(void)
     xTaskCreate(state_task, "state_task", 512, NULL, 5, NULL);
     init_nvs_handler();
     init_wifi_provisioning(); // Error handling is already handled in the init function
-    set_state(STATE_STARTUP_INIT_DALI_COMMUNICATION);
+    set_state(DALI_COMMUNICATION_INIT_STATE);
     init_DALI_communication();
-    set_state(STATE_STARTUP_ANALYZE_DALI_BUS);
+    set_state(ANALYZE_DALI_BUS_STATE);
     DALI_Status check = check_drivers_commissioned();
 
-    uint8_t masterValue = 210;
-    nvs_write_uint8("GigaTest", masterValue);
+    // uint8_t masterValue = 210;
+    // nvs_write_uint8("GigaTest", masterValue);
 
-    printf("Value read: %d\n", nvs_read_uint8("GigaTest"));
+    // printf("Value read: %d\n", nvs_read_uint8("GigaTest"));
 
     if (check == DALI_OK)
     {
-        set_state(STATE_SYSTEM_OK);
+        set_state(SYSTEM_RUNNING_STATE);
         printf("All drivers commissioned\n");
     }
     else if (check == DALI_ERR_BUS_NOT_COMMISIONED)
     {
-        set_state(STATE_BUS_NOT_COMMISIONED);
+        set_state(DALI_BUS_NOT_COMMISIONED_STATE);
         printf("Bus not commissioned\n");
     }
     else if (check == DALI_ERR_NO_RESPONSE_ON_BUS)
     {
-        set_state(STATE_NO_RESPONSE_ON_BUS);
+        set_state(NO_RESPONSE_ON_DALI_BUS);
         printf("No response on the bus\n");
     }
     else if (check == DALI_ERR_BUS_CORRUPTED)
     {
-        set_state(STATE_CORRUPTED_DALI_BUS);
+        set_state(DALI_BUS_CORRUPTED_STATE);
         printf("Uncommissioned driver\n");
     }
     else
