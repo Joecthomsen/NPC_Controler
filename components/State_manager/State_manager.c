@@ -47,6 +47,7 @@ void state_task(void *parameter)
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, LOW);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
         case STATE_CORRUPTED_DALI_BUS:
@@ -66,6 +67,7 @@ void state_task(void *parameter)
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
         case STATE_SYSTEM_OK:
@@ -84,11 +86,13 @@ void state_task(void *parameter)
         case STATE_NO_WIFI:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
         default:
             ESP_LOGE("State_manager", "Unknown state error");
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, HIGH);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
         }
     }

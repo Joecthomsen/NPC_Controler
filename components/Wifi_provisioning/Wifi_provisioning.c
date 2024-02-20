@@ -100,6 +100,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
             break;
         case WIFI_EVENT_STA_DISCONNECTED:
             ESP_LOGI(TAG, "Disconnected. Connecting to the AP again...");
+            set_state(STATE_NO_WIFI);
             esp_wifi_connect();
             break;
         case WIFI_EVENT_AP_STACONNECTED:
