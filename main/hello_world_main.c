@@ -27,6 +27,10 @@
 #include "State_manager.h"
 #include "Nvs_handler.h"
 
+static const char *TAG = "app_main";
+
+void process_DALI_response(DALI_Status response);
+
 void taskOne(void *parameter)
 {
     while (true)
@@ -41,75 +45,97 @@ void app_main(void)
 {
     init_state_manager();
     xTaskCreate(state_task, "state_task", 2048, NULL, 5, NULL);
-
+    State_t current_state;
     while (true)
     {
-        State_t current_state = get_state();
+        current_state = get_state();
         switch (current_state)
         {
+            // ****************************   Normal states    ****************************
+
         case NVS_INIT_STATE:
             init_nvs_handler();
+            ESP_LOGI(TAG, "NVS initialized");
             set_state(AWAIT_WIFI_PROVISIONING_STATE);
             break;
 
         case AWAIT_WIFI_PROVISIONING_STATE:
             init_wifi_provisioning();
+            ESP_LOGI(TAG, "Wifi provisioning initialized");
             set_state(DALI_COMMUNICATION_INIT_STATE);
             break;
 
         case DALI_COMMUNICATION_INIT_STATE:
             init_DALI_communication();
-            set_state(ANALYZE_DALI_BUS_STATE);
-            break;
-
-        case ANALYZE_DALI_BUS_STATE:
-            DALI_Status check = check_drivers_commissioned();
-            if (check == DALI_OK)
-            {
-                set_state(DALI_COMMUNICATION_OK_STATE);
-                // printf("All drivers commissioned\n");
-            }
-            else if (check == DALI_ERR_BUS_NOT_COMMISIONED)
-            {
-                set_state(DALI_BUS_NOT_COMMISIONED_STATE);
-                // printf("Bus not commissioned\n");
-            }
-            else if (check == DALI_ERR_NO_RESPONSE_ON_BUS)
-            {
-                set_state(NO_RESPONSE_ON_DALI_BUS);
-                // printf("No response on the bus\n");
-            }
-            else if (check == DALI_ERR_BUS_CORRUPTED)
-            {
-                set_state(DALI_BUS_CORRUPTED_STATE);
-                // printf("Uncommissioned driver\n");
-            }
-            else
-            {
-                // printf("Unknown error: %d\n", check);
-            }
-            break;
-
-        case DALI_COMMUNICATION_OK_STATE:
+            ESP_LOGI(TAG, "DALI communication initialized");
             set_state(TCP_SERVER_INIT_STATE);
             break;
 
         case TCP_SERVER_INIT_STATE:
-
+            xTaskCreate(tcp_server_task, "tcp_server", 2048, NULL, 5, NULL);
+            ESP_LOGI(TAG, "TCP server initialized");
             set_state(MDNS_INIT_STATE);
             break;
 
         case MDNS_INIT_STATE:
             mDNS_init();
+            ESP_LOGI(TAG, "mDNS initialized");
+            set_state(ANALYZE_DALI_BUS_STATE);
+            break;
+
+        case ANALYZE_DALI_BUS_STATE:
+            ESP_LOGI(TAG, "Analyzing DALI bus");
+            DALI_Status check = check_drivers_commissioned();
+            process_DALI_response(check); // Assert if OK or some ERROR and set state.
+            break;
+
+        case DALI_COMMUNICATION_OK_STATE:
+            set_state(SYSTEM_RUNNING_STATE);
+            break;
+
+        case SYSTEM_RUNNING_STATE:
+            vTaskDelay(20000 / portTICK_PERIOD_MS);
+
+            // ****************************   Error states    ****************************
+
+        case DALI_BUS_NOT_COMMISIONED_STATE:
             break;
 
         default:
+            ESP_LOGE(TAG, "Unknown state at line %d in run_task", __LINE__);
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
             break;
         }
         vTaskDelay(50 / portTICK_PERIOD_MS);
     }
+}
 
-    /* Initialize NVS partition */
+void process_DALI_response(DALI_Status response)
+{
+    if (response == DALI_OK)
+    {
+        ESP_LOGI(TAG, "DALI bus OK");
+        set_state(DALI_COMMUNICATION_OK_STATE);
+    }
+    else if (response == DALI_ERR_BUS_NOT_COMMISIONED)
+    {
+        ESP_LOGE(TAG, "DALI bus not commisioned");
+        set_state(DALI_BUS_NOT_COMMISIONED_STATE);
+    }
+    else if (response == DALI_ERR_NO_RESPONSE_ON_BUS)
+    {
+        ESP_LOGE(TAG, "No response on DALI bus");
+        set_state(NO_RESPONSE_ON_DALI_BUS);
+    }
+    else if (response == DALI_ERR_BUS_CORRUPTED)
+    {
+        ESP_LOGE(TAG, "DALI bus corrupted");
+        set_state(DALI_BUS_CORRUPTED_STATE);
+    }
+    else
+    {
+        ESP_LOGE(TAG, "Unknown error");
+    }
 }
 
 // void run(void *parameter)

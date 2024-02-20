@@ -10,6 +10,5 @@
 
 Http_status post_control_gear_status(Controle_gear_values_t *controle_gear)
 {
-    printf("Posting control gear status\n");
     return HTTP_OK;
 }
