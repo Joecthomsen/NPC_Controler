@@ -68,7 +68,10 @@
         "complex": "c",
         "system_error": "c",
         "type_traits": "c",
-        "utility": "c"
+        "utility": "c",
+        "esp_log.h": "c",
+        "nvs.h": "c",
+        "nvs_flash.h": "c"
     },
     "idf.flashType": "UART"
 }
