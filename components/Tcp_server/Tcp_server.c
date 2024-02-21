@@ -16,10 +16,11 @@
 typedef enum
 {
     EVENT_NONE,
-    EVENT_COMMISSION_DALI_BUS,
-} event_type_t;
+    EVENT_GET_STATUS,
+    EVENT_COMMISION_DALI_BUS,
+} tcp_event_type_t;
 
-static event_type_t current_event = EVENT_NONE;
+static tcp_event_type_t current_event = EVENT_NONE;
 
 void message_handler(char *rx_buffer, int len);
 
@@ -94,6 +95,7 @@ void tcp_server_task(void *pvParameters)
             {
                 rx_buffer[len] = 0;
                 ESP_LOGI(TAG, "Received %d bytes: %s", len, rx_buffer);
+                message_handler(rx_buffer, len);
                 send(sock, rx_buffer, len, 0);
             }
         }
@@ -110,8 +112,25 @@ void tcp_server_task(void *pvParameters)
 
 void message_handler(char *rx_buffer, int len)
 {
-    if (strcmp(rx_buffer, "COMMISION_DALI_BUS") == 0)
+    // Trim leading and trailing whitespace
+    char *end = rx_buffer + len - 1;
+    while (end > rx_buffer && isspace((unsigned char)*end))
+        end--;
+    end[1] = '\0';
+
+    char *start = rx_buffer;
+    while (*start && isspace((unsigned char)*start))
+        start++;
+
+    ESP_LOGI(TAG, "Received message from messages handler: %s", rx_buffer);
+
+    if (strcmp(rx_buffer, "GET_STATUS") == 0)
     {
-        current_event = EVENT_COMMISSION_DALI_BUS;
+        ESP_LOGI(TAG, "Received GET_STATUS messages handler");
+        current_event = EVENT_GET_STATUS;
+    }
+    else if (strcmp(rx_buffer, "EVENT_COMMISION_DALI_BUS") == 0)
+    {
+        current_event = EVENT_COMMISION_DALI_BUS;
     }
 }
