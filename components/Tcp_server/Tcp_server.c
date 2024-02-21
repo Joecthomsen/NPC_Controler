@@ -10,6 +10,8 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 #include "lwip/netdb.h"
+#include "State_manager.h"
+#include "API.h"
 
 #define TAG "TCP_SERVER"
 
@@ -22,7 +24,7 @@ typedef enum
 
 static tcp_event_type_t current_event = EVENT_NONE;
 
-void message_handler(char *rx_buffer, int len);
+void message_handler(char *rx_buffer, int len, int socket);
 
 void tcp_server_task(void *pvParameters)
 {
@@ -95,8 +97,8 @@ void tcp_server_task(void *pvParameters)
             {
                 rx_buffer[len] = 0;
                 ESP_LOGI(TAG, "Received %d bytes: %s", len, rx_buffer);
-                message_handler(rx_buffer, len);
-                send(sock, rx_buffer, len, 0);
+                message_handler(rx_buffer, len, sock);
+                // send(sock, rx_buffer, len, 0);
             }
         }
 
@@ -110,7 +112,7 @@ void tcp_server_task(void *pvParameters)
     vTaskDelete(NULL);
 }
 
-void message_handler(char *rx_buffer, int len)
+void message_handler(char *rx_buffer, int len, int socket)
 {
     // Trim leading and trailing whitespace
     char *end = rx_buffer + len - 1;
@@ -124,10 +126,13 @@ void message_handler(char *rx_buffer, int len)
 
     ESP_LOGI(TAG, "Received message from messages handler: %s", rx_buffer);
 
-    if (strcmp(rx_buffer, "GET_STATUS") == 0)
+    if (strcmp(rx_buffer, "GET_STATE") == 0)
     {
-        ESP_LOGI(TAG, "Received GET_STATUS messages handler");
-        current_event = EVENT_GET_STATUS;
+        ESP_LOGI(TAG, "Received GET_STATE message");
+        // test_me();
+        //   char *current_state = get_controler_state();
+        //    uint8_t current_state_len = strlen(current_state);
+        //    send(socket, current_state, current_state_len, 0);
     }
     else if (strcmp(rx_buffer, "EVENT_COMMISION_DALI_BUS") == 0)
     {

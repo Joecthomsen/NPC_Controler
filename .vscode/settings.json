@@ -71,7 +71,10 @@
         "utility": "c",
         "esp_log.h": "c",
         "nvs.h": "c",
-        "nvs_flash.h": "c"
+        "nvs_flash.h": "c",
+        "netdb.h": "c",
+        "sockets.h": "c",
+        "api.h": "c"
     },
     "idf.flashType": "UART"
 }
