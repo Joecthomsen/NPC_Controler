@@ -17,21 +17,29 @@
 #define LOW 0
 #define HIGH 1
 
-typedef enum State_Machine
+typedef enum State_t
 {
-    STATE_STARTUP_WIFI_CONNECT,
-    STATE_STARTUP_AWAIT_WIFI_PROVISIONING,
-    STATE_STARTUP_INIT_DALI_COMMUNICATION,
-    STATE_STARTUP_ANALYZE_DALI_BUS,
-    STATE_NO_WIFI,
-    STATE_CORRUPTED_DALI_BUS,
-    STATE_BUS_NOT_COMMISIONED,
-    STATE_NO_RESPONSE_ON_BUS,
-    STATE_SYSTEM_OK,
-} State_Machine;
+    NVS_INIT_STATE,
+    AWAIT_WIFI_PROVISIONING_STATE,
+    WIFI_PROVISIONING_STATE,
+    WIFI_CONNECTED_STATE,
+    DALI_COMMUNICATION_INIT_STATE,
+    DALI_COMMUNICATION_OK_STATE,
+    ANALYZE_DALI_BUS_STATE,
+    TCP_SERVER_INIT_STATE,
+    MDNS_INIT_STATE,
+    SYSTEM_RUNNING_STATE,
+
+    // Error states
+    NO_WIFI_STATE,
+    DALI_BUS_CORRUPTED_STATE,
+    DALI_BUS_NOT_COMMISIONED_STATE,
+    NO_RESPONSE_ON_DALI_BUS,
+
+} State_t;
 
 void set_state(int state);
-State_Machine get_state();
+State_t get_state();
 void init_state_manager();
 void state_task(void *parameter);
 

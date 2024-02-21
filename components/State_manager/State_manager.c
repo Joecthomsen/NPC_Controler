@@ -3,7 +3,7 @@
 #include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 
-int state_machine = STATE_STARTUP_WIFI_CONNECT;
+int state_machine = NVS_INIT_STATE;
 bool state_manager_inited = false;
 
 void state_task(void *parameter)
@@ -12,21 +12,28 @@ void state_task(void *parameter)
     {
         switch (state_machine)
         {
-        case STATE_STARTUP_WIFI_CONNECT:
+        case NVS_INIT_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
             vTaskDelay(100 / portTICK_PERIOD_MS);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, LOW);
             vTaskDelay(100 / portTICK_PERIOD_MS);
             break;
 
-        case STATE_STARTUP_AWAIT_WIFI_PROVISIONING:
+        case WIFI_PROVISIONING_STATE:
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, LOW);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            break;
+
+        case AWAIT_WIFI_PROVISIONING_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
             vTaskDelay(500 / portTICK_PERIOD_MS);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, LOW);
             vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
-        case STATE_STARTUP_INIT_DALI_COMMUNICATION:
+        case DALI_COMMUNICATION_INIT_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, HIGH);
             vTaskDelay(100 / portTICK_PERIOD_MS);
@@ -34,7 +41,13 @@ void state_task(void *parameter)
             vTaskDelay(100 / portTICK_PERIOD_MS);
             break;
 
-        case STATE_STARTUP_ANALYZE_DALI_BUS:
+        case DALI_COMMUNICATION_OK_STATE:
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, HIGH);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
+            break;
+
+        case ANALYZE_DALI_BUS_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, HIGH);
             vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -42,7 +55,19 @@ void state_task(void *parameter)
             vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
-        case STATE_BUS_NOT_COMMISIONED:
+        case TCP_SERVER_INIT_STATE:
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, HIGH);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
+            break;
+
+        case MDNS_INIT_STATE:
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, HIGH);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
+            break;
+
+        case DALI_BUS_NOT_COMMISIONED_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, LOW);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
@@ -50,7 +75,7 @@ void state_task(void *parameter)
             vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
-        case STATE_CORRUPTED_DALI_BUS:
+        case DALI_BUS_CORRUPTED_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
@@ -62,7 +87,7 @@ void state_task(void *parameter)
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
             break;
 
-        case STATE_NO_RESPONSE_ON_BUS:
+        case NO_RESPONSE_ON_DALI_BUS:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
@@ -70,7 +95,7 @@ void state_task(void *parameter)
             vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
-        case STATE_SYSTEM_OK:
+        case SYSTEM_RUNNING_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, LOW);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, LOW);
@@ -83,11 +108,18 @@ void state_task(void *parameter)
             vTaskDelay(2950 / portTICK_PERIOD_MS);
             break;
 
-        case STATE_NO_WIFI:
+        case NO_WIFI_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
             vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
+
+        case WIFI_CONNECTED_STATE:
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
 
         default:
             ESP_LOGE("State_manager", "Unknown state error");
@@ -107,7 +139,7 @@ void set_state(int new_state)
     state_machine = new_state;
 }
 
-State_Machine get_state()
+State_t get_state()
 {
     return state_machine;
 }

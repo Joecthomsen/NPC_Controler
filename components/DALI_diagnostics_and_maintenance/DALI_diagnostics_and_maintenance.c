@@ -4,6 +4,9 @@
 #include "freertos/FreeRTOS.h"
 #include "constants.h"
 #include "DALI_memory_bank_handler.h"
+#include "esp_log.h"
+
+static const char *TAG = "DALI_diagnostics_and_maintenance";
 
 DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time);
 DALI_Status get_start_counter(uint8_t short_address, bit24_t *start_counter);
@@ -22,7 +25,7 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
     Controle_gear_values_t controle_gear;
     DALI_Status dali_status;
 
-    printf("Manufactor ID: %llx\n", read_manufactor_id(short_address));
+    // printf("Manufactor ID: %llx\n", read_manufactor_id(short_address));
 
     uint32_t new_operating_time = 0;
     bit24_t new_start_counter = 0;
@@ -52,82 +55,82 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
 
     dali_status = get_operating_time(short_address, &new_operating_time);
     if (dali_status != DALI_OK)
-        printf("Operation time error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting operating time: %d\n", dali_status);
 
     dali_status = get_start_counter(short_address, &new_start_counter);
     if (dali_status != DALI_OK)
-        printf("Start counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting start counter: %d\n", dali_status);
 
     dali_status = get_external_supply_voltage(short_address, &new_external_supply_voltage);
     if (dali_status != DALI_OK)
-        printf("External supply voltage error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting external supply voltage: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_VOLTAGE_FREQUENZY, &new_external_supply_voltage_frequenzy);
     if (dali_status != DALI_OK)
-        printf("External supply voltage frequenzy error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting external supply voltage frequenzy: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, POWER_FACTOR, &new_power_factor);
     if (dali_status != DALI_OK)
-        printf("Power factor error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting power factor: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OVERALL_FALIURE_CONDITION, &new_overall_faliure_condition);
     if (dali_status != DALI_OK)
-        printf("Overall faliure condition: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting overall faliure condition: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_UNDERVOLTAGE, &new_external_supply_undervoltage);
     if (dali_status != DALI_OK)
-        printf("External supply undervoltage counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting external supply undervoltage: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_UNDERVOLTAGE_COUNTER, &new_external_supply_undervoltage_counter);
     if (dali_status != DALI_OK)
-        printf("External supply undervoltage counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting external supply undervoltage counter: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_OVERVOLTAGE, &new_external_supply_overvoltage);
     if (dali_status != DALI_OK)
-        printf("External supply undervoltage counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting external supply overvoltage: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_OVERVOLTAGE_COUNTER, &new_external_supply_overvoltage_counter);
     if (dali_status != DALI_OK)
-        printf("External supply undervoltage counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting external supply overvoltage counter: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_POWER_LIMITATION, &new_output_power_limitation);
     if (dali_status != DALI_OK)
-        printf("Power limitation error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting output power limitation: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_POWER_LIMITATION_COUNTER, &new_output_power_limitation_counter);
     if (dali_status != DALI_OK)
-        printf("Power limitation counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting output power limitation counter: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_DERATING, &new_thermal_derating);
     if (dali_status != DALI_OK)
-        printf("Therman derating error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting thermal derating: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_DERATING_COUNTER, &new_thermal_derating_counter);
     if (dali_status != DALI_OK)
-        printf("Therman derating counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting thermal derating counter: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_SHUTDOWN, &new_thermal_shutdown);
     if (dali_status != DALI_OK)
-        printf("Therman derating counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting thermal shutdown: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_SHUTDOWN_COUNTER, &new_thermal_shutdown_counter);
     if (dali_status != DALI_OK)
-        printf("Therman derating counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting thermal shutdown counter: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, TEMPERATURE, &new_temperature);
     if (dali_status != DALI_OK)
-        printf("Therman derating counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting temperature: %d\n", dali_status);
 
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_CURRENT_PERCENT, &new_output_current_percent);
     if (dali_status != DALI_OK)
-        printf("Therman derating counter error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting output current percent: %d\n", dali_status);
 
     uint8_t locableByte = 0;
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, 0x02, &locableByte);
     if (dali_status != DALI_OK)
-        printf("Locable byte error: %d\n", dali_status);
+        ESP_LOGE(TAG, "Error getting locable byte: %d\n", dali_status);
 
-    printf("locableByte: %d\n", locableByte);
+    uint64_t manufactoring_id = read_manufactor_id(short_address); // TODO implement error handling/logging
 
     controle_gear.operating_time = new_operating_time;
     controle_gear.start_counter = new_start_counter;
@@ -147,6 +150,7 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
     controle_gear.thermal_shutdown_counter = new_thermal_shutdown_counter;
     controle_gear.temperature = new_temperature;
     controle_gear.output_current_percent = new_output_current_percent;
+    controle_gear.manufacturer_id = manufactoring_id;
 
     return controle_gear;
 }
@@ -254,6 +258,7 @@ void printObject(Controle_gear_values_t gear)
 {
     printf("\n\n");
     printf("Controle_gear_values_t {\n");
+    printf("  manufacturer_id: %llu\n", gear.manufacturer_id);
     printf("  operating_time: %lu\n", gear.operating_time);
     printf("  start_counter: %lu\n", gear.start_counter);
     printf("  external_supply_voltage: %u\n", gear.external_supply_voltage);

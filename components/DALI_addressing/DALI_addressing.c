@@ -2,15 +2,15 @@
 #include "DALI_commands.h"
 #include <math.h>
 #include "DALI_communication.h"
+#include "esp_log.h"
 
 // Prototypes
 address24_t find_lowest_device_address(address24_t start, address24_t end);
 bool compare_device_address(address24_t address);
-// void set_search_address(address24_t address);
-//  void set_all_devices_in_initialize_state();
 void generate_random_device_addresses();
 void program_short_address(address24_t longAddress, uint8_t shortAddress);
-// bool verify_short_address(uint8_t shortAddress);
+
+static const char *TAG = "DALI_addressing";
 
 /**
  * @brief Commission all DALI drivers on the bus by assigning short addresses
@@ -41,15 +41,15 @@ uint8_t commission_bus()
             break;
         }
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
-        printf("Address found: %lx\n", address);
+        ESP_LOGI(TAG, "Commissioning device with address %lx", address);
         program_short_address(address, counter);
         if (verify_short_address(counter))
         {
-            printf("Short address verified\n");
+            ESP_LOGI(TAG, "Short address verified");
         }
         else
         {
-            printf("Short address not verified\n");
+            ESP_LOGE(TAG, "Short address not verified");
         }
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
         send_DALI_Tx(WITHDRAW); // Ensure that the search address is set on the driver, otherwise this will fail. In this case, the search address is set in the function set_search_address.
@@ -73,11 +73,10 @@ DALI_Status check_drivers_commissioned()
     address24_t address = 0;
     set_all_devices_in_initialize_state();
     generate_random_device_addresses();
-    printf("Analyzing bus...\n");
     while (true)
     {
         address = find_lowest_device_address(address, 0xFFFFFF);
-        printf("Address found ANALYZE: %lx\n", address);
+        ESP_LOGI(TAG, "Address found: %lx\n", address);
         if (address == 0xFFFFFF)
         {
             break;
@@ -94,7 +93,6 @@ DALI_Status check_drivers_commissioned()
         if (verify_short_address(i))
         {
             driversWithShortAddressOnBus++;
-            printf("Driver %d has short address %d\n", i, i);
         }
         vTaskDelay(DELAY_AWAIT_RESPONSE);
     }

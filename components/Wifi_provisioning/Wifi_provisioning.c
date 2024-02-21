@@ -100,12 +100,12 @@ static void event_handler(void *arg, esp_event_base_t event_base,
             break;
         case WIFI_EVENT_STA_DISCONNECTED:
             ESP_LOGI(TAG, "Disconnected. Connecting to the AP again...");
-            set_state(STATE_NO_WIFI);
+            set_state(NO_WIFI_STATE);
             esp_wifi_connect();
             break;
         case WIFI_EVENT_AP_STACONNECTED:
             ESP_LOGI(TAG, "SoftAP transport: Connected!");
-            set_state(STATE_STARTUP_WIFI_CONNECT);
+            set_state(WIFI_PROVISIONING_STATE);
             break;
         case WIFI_EVENT_AP_STADISCONNECTED:
             ESP_LOGI(TAG, "SoftAP transport: Disconnected!");
@@ -113,7 +113,7 @@ static void event_handler(void *arg, esp_event_base_t event_base,
             /* Let's find out if the device is provisioned */
             // ESP_ERROR_CHECK(wifi_prov_mgr_is_provisioned(&provisioned));
             if (!provisioned)
-                set_state(STATE_STARTUP_AWAIT_WIFI_PROVISIONING);
+                set_state(AWAIT_WIFI_PROVISIONING_STATE);
             break;
 
         default:
@@ -156,11 +156,11 @@ static void wifi_init_sta(void)
     // ESP_ERROR_CHECK(esp_wifi_start());
     if (res != ESP_OK)
     {
-        set_state(STATE_NO_WIFI);
+        set_state(NO_WIFI_STATE);
     }
     else
     {
-        set_state(STATE_STARTUP_INIT_DALI_COMMUNICATION);
+        set_state(DALI_COMMUNICATION_INIT_STATE);
     }
 }
 
@@ -275,7 +275,7 @@ void init_wifi_provisioning(void)
     if (!provisioned)
     {
         ESP_LOGI(TAG, "Starting provisioning");
-        set_state(STATE_STARTUP_AWAIT_WIFI_PROVISIONING);
+        set_state(AWAIT_WIFI_PROVISIONING_STATE);
 
         /* What is the Device Service Name that we want
          * This translates to :

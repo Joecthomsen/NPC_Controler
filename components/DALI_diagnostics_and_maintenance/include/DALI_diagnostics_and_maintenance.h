@@ -32,6 +32,7 @@ typedef uint32_t bit24_t;
 
 typedef struct Controle_gear_values_t
 {
+    uint64_t manufacturer_id;
     uint32_t operating_time;
     bit24_t start_counter;
     uint16_t external_supply_voltage;
