@@ -1,23 +1,23 @@
-#include <stdio.h>
-#include "API.h"
-#include "DALI_addressing.h"
-#include "State_manager.h"
+// #include <stdio.h>
+// #include "API.h"
+// #include "DALI_addressing.h"
+// #include "State_manager.h"
 
-char response[RESPONSE_BUFFER_SIZE] = "{\"status\":\"Error fetching state\"}";
+// char response[RESPONSE_BUFFER_SIZE] = "{\"status\":\"Error fetching state\"}";
 
-char *get_all_controle_gear_as_json_string(void)
-{
-    return NULL;
-}
-void store_controle_gear(Controle_gear_t controle_gear)
-{
-}
+// char *get_all_controle_gear_as_json_string(void)
+// {
+//     return NULL;
+// }
+// void store_controle_gear(Controle_gear_t controle_gear)
+// {
+// }
 
-void test_me()
-{
-    return;
-    // ESP_LOGI("API", "Testing me");
-}
+// void test_me()
+// {
+//     return;
+//     // ESP_LOGI("API", "Testing me");
+// }
 
 // char *get_controler_state(void)
 // {

@@ -31,6 +31,8 @@ static const char *TAG = "app_main";
 
 void process_DALI_response(DALI_Status response);
 
+uint8_t error_counter = 0;
+
 void taskOne(void *parameter)
 {
     while (true)
@@ -95,6 +97,7 @@ void app_main(void)
 
         case SYSTEM_RUNNING_STATE:
             vTaskDelay(20000 / portTICK_PERIOD_MS);
+            break;
 
             // ****************************   Error states    ****************************
 
@@ -105,7 +108,19 @@ void app_main(void)
 
         case DALI_BUS_CORRUPTED_STATE:
             ESP_LOGE(TAG, "DALI bus corrupted");
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            if (error_counter < 3)
+            {
+                error_counter++;
+                ESP_LOGI(TAG, "Trying to re-analyze DALI bus");
+                set_state(ANALYZE_DALI_BUS_STATE);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+            }
+            else
+            {
+                send_tcp_message("{\"status\":\"DALI bus corrupted\"}");
+                error_counter = 0;
+            }
+
             break;
 
         case DALI_BUS_NOT_COMMISIONED_STATE:
@@ -113,7 +128,19 @@ void app_main(void)
 
         case NO_RESPONSE_ON_DALI_BUS:
             ESP_LOGE(TAG, "No response on DALI bus");
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            if (error_counter < 3)
+            {
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                ESP_LOGI(TAG, "Trying to re-analyze DALI bus");
+                set_state(ANALYZE_DALI_BUS_STATE);
+                error_counter++;
+            }
+            else
+            {
+                send_tcp_message("{\"status\":\"No response on DALI bus\"}");
+                error_counter = 0;
+            }
+
             break;
 
         default:
