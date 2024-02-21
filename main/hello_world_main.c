@@ -98,7 +98,22 @@ void app_main(void)
 
             // ****************************   Error states    ****************************
 
+        case NO_WIFI_STATE: // This state is already handled in the Wifi_provisioning.c
+            ESP_LOGE(TAG, "No wifi");
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            break;
+
+        case DALI_BUS_CORRUPTED_STATE:
+            ESP_LOGE(TAG, "DALI bus corrupted");
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            break;
+
         case DALI_BUS_NOT_COMMISIONED_STATE:
+            break;
+
+        case NO_RESPONSE_ON_DALI_BUS:
+            ESP_LOGE(TAG, "No response on DALI bus");
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
             break;
 
         default:
