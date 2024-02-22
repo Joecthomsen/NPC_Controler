@@ -8,9 +8,10 @@
 
 static const char *TAG = "DALI_diagnostics_and_maintenance";
 
-DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time);
+// DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time);
 DALI_Status get_start_counter(uint8_t short_address, bit24_t *start_counter);
 DALI_Status get_external_supply_voltage(uint8_t short_address, uint16_t *external_supply_voltage);
+DALI_Status read_4_bytes(uint8_t short_address, uint32_t *return_value, uint8_t memory_bank, uint8_t start_address);
 uint8_t calculate_short_address_standard_cmd(uint8_t short_address);
 uint64_t read_manufactor_id(uint8_t short_address);
 
@@ -34,7 +35,10 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
 
     controle_gear.manufacturer_id = read_manufactor_id(short_address); // TODO implement error handling/logging
 
-    dali_status = get_operating_time(short_address, &controle_gear.operating_time);
+    // Fetch memory bank 205
+
+    dali_status = read_4_bytes(short_address, &controle_gear.operating_time, MEMORY_BANK_205, OPERATING_TIME_MSB); // get_operating_time(short_address, &controle_gear.operating_time);
+    // dali_status = get_operating_time(short_address, &controle_gear.operating_time);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting operating time: %d\n", dali_status);
 
@@ -111,6 +115,8 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting locable byte: %d\n", dali_status);
 
+    // Fetch memory bank 206
+
     return controle_gear;
 }
 
@@ -121,35 +127,43 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
  * @param operating_time Pointer to uint32_t to store operating hours
  * @return DALI_Status DALI_OK if successful
  */
-DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time)
-{
-    uint8_t operating_time_MSB = 0;
-    uint8_t operating_time_2 = 0;
-    uint8_t operating_time_3 = 0;
-    uint8_t operating_time_LSB = 0;
+// DALI_Status get_operating_time(uint8_t short_address, uint32_t *operating_time)
+// {
+//     uint8_t operating_time_MSB = 0;
+//     uint8_t operating_time_2 = 0;
+//     uint8_t operating_time_3 = 0;
+//     uint8_t operating_time_LSB = 0;
 
-    DALI_Status dali_status;
+//     DALI_Status dali_status;
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OPERATING_TIME_MSB, &operating_time_MSB);
-    if (dali_status != DALI_OK)
-        return dali_status;
+//     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OPERATING_TIME_MSB, &operating_time_MSB);
+//     if (dali_status != DALI_OK)
+//         return dali_status;
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OPERATING_TIME_2, &operating_time_2);
-    if (dali_status != DALI_OK)
-        return dali_status;
+//     vTaskDelay(50 / portTICK_PERIOD_MS);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OPERATING_TIME_3, &operating_time_3);
-    if (dali_status != DALI_OK)
-        return dali_status;
+//     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OPERATING_TIME_2, &operating_time_2);
+//     if (dali_status != DALI_OK)
+//         return dali_status;
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OPERATING_TIME_LSB, &operating_time_LSB);
-    if (dali_status != DALI_OK)
-        return dali_status;
+//     vTaskDelay(50 / portTICK_PERIOD_MS);
 
-    *operating_time |= ((operating_time_MSB << 0x18U) | (operating_time_2 << 0x10U) | (operating_time_3 << 0x8U) | operating_time_LSB);
+//     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OPERATING_TIME_3, &operating_time_3);
+//     if (dali_status != DALI_OK)
+//         return dali_status;
 
-    return dali_status;
-}
+//     vTaskDelay(50 / portTICK_PERIOD_MS);
+
+//     dali_status = read_memory_location(short_address, MEMORY_BANK_205, OPERATING_TIME_LSB, &operating_time_LSB);
+//     if (dali_status != DALI_OK)
+//         return dali_status;
+
+//     vTaskDelay(50 / portTICK_PERIOD_MS);
+
+//     *operating_time = ((operating_time_MSB << 0x18U) | (operating_time_2 << 0x10U) | (operating_time_3 << 0x8U) | operating_time_LSB);
+
+//     return dali_status;
+// }
 
 /**
  * @brief Get start counter from DALI device
@@ -204,6 +218,36 @@ DALI_Status get_external_supply_voltage(uint8_t short_address, uint16_t *externa
         return dali_status;
 
     *external_supply_voltage |= (external_supply_voltage_MSB << 0x08) | (external_supply_voltage_LSB);
+
+    return dali_status;
+}
+
+DALI_Status read_4_bytes(uint8_t short_address, uint32_t *return_value, uint8_t memory_bank, uint8_t start_address)
+{
+    uint8_t MSB = 0;
+    uint8_t second = 0;
+    uint8_t third = 0;
+    uint8_t LSB = 0;
+
+    DALI_Status dali_status;
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, start_address, &MSB);
+    if (dali_status != DALI_OK)
+        return dali_status;
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, start_address + 1, &second);
+    if (dali_status != DALI_OK)
+        return dali_status;
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, start_address + 2, &third);
+    if (dali_status != DALI_OK)
+        return dali_status;
+
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, start_address + 3, &LSB);
+    if (dali_status != DALI_OK)
+        return dali_status;
+
+    *return_value = ((MSB << 0x18U) | (second << 0x10U) | (third << 0x8U) | LSB);
 
     return dali_status;
 }

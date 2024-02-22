@@ -94,8 +94,8 @@ typedef struct Controle_gear_values_t
     uint8_t temperature;
     uint8_t output_current_percent;
     // Memory bank 206
-    uint32_t light_source_start_counter_resettable;
-    uint32_t light_source_start_counter;
+    bit24_t light_source_start_counter_resettable;
+    bit24_t light_source_start_counter;
     uint32_t light_source_on_time_resettable;
     uint32_t light_source_on_time;
     uint16_t light_source_voltage;
