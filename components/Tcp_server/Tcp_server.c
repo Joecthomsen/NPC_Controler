@@ -10,18 +10,29 @@
 #include "lwip/sockets.h"
 #include "lwip/sys.h"
 #include "lwip/netdb.h"
+#include "State_manager.h"
+#include "API_controler.h"
+#include "constants.h"
 
 #define TAG "TCP_SERVER"
+
+char response[128];
+char transmit[128];
+int global_socket = -1;
 
 typedef enum
 {
     EVENT_NONE,
-    EVENT_COMMISSION_DALI_BUS,
-} event_type_t;
+    EVENT_GET_STATUS,
+    EVENT_COMMISION_DALI_BUS,
+} tcp_event_type_t;
 
-static event_type_t current_event = EVENT_NONE;
+bool transmit_error_flag = false;
 
-void message_handler(char *rx_buffer, int len);
+static tcp_event_type_t current_event = EVENT_NONE;
+
+void message_handler(char *rx_buffer, int len, int socket);
+char *get_controler_state(void);
 
 void tcp_server_task(void *pvParameters)
 {
@@ -68,6 +79,17 @@ void tcp_server_task(void *pvParameters)
         struct sockaddr_in source_addr;
         uint addr_len = sizeof(source_addr);
         int sock = accept(listen_sock, (struct sockaddr *)&source_addr, &addr_len);
+
+        ESP_LOGI(TAG, "Socket accepted");
+
+        if (transmit_error_flag)
+        {
+            int msg_len = strlen(transmit);
+            send(sock, transmit, msg_len, 0);
+            transmit_error_flag = false;
+        }
+
+        global_socket = sock;
         if (sock < 0)
         {
             ESP_LOGE(TAG, "Unable to accept connection: errno %d", errno);
@@ -94,7 +116,9 @@ void tcp_server_task(void *pvParameters)
             {
                 rx_buffer[len] = 0;
                 ESP_LOGI(TAG, "Received %d bytes: %s", len, rx_buffer);
-                send(sock, rx_buffer, len, 0);
+                // test_me();
+                message_handler(rx_buffer, len, sock);
+                // send(sock, rx_buffer, len, 0);
             }
         }
 
@@ -102,16 +126,124 @@ void tcp_server_task(void *pvParameters)
         {
             shutdown(sock, 0);
             close(sock);
+            global_socket = -1;
         }
         close(listen_sock);
     }
     vTaskDelete(NULL);
 }
 
-void message_handler(char *rx_buffer, int len)
+void message_handler(char *rx_buffer, int len, int socket)
 {
-    if (strcmp(rx_buffer, "COMMISION_DALI_BUS") == 0)
+    // Trim leading and trailing whitespace
+    char *end = rx_buffer + len - 1;
+    while (end > rx_buffer && isspace((unsigned char)*end))
+        end--;
+    end[1] = '\0';
+
+    char *start = rx_buffer;
+    while (*start && isspace((unsigned char)*start))
+        start++;
+
+    ESP_LOGI(TAG, "Received message from messages handler: %s", rx_buffer);
+
+    if (strcmp(rx_buffer, "GET_STATE") == 0)
     {
-        current_event = EVENT_COMMISSION_DALI_BUS;
+        ESP_LOGI(TAG, "Received GET_STATE message");
+        char *current_state = get_controler_state();
+        uint8_t current_state_len = strlen(current_state);
+        send(socket, current_state, current_state_len, 0);
+    }
+    else if (strcmp(rx_buffer, "COMMISION_DALI_BUS") == 0)
+    {
+        ESP_LOGI(TAG, "Received COMMISION_DALI_BUS message");
+        set_state(DALI_COMMISION_BUS_STATE);
+        xEventGroupSetBits(tcpEventGroup, TCP_EVENT_BIT);
+    }
+    else if (strncmp(rx_buffer, "BLINK_LAMP_WITH_SHORT_ADDRESS", strlen("BLINK_LAMP_WITH_SHORT_ADDRESS")) == 0)
+    {
+        // Extract the short address argument
+        char *argument = rx_buffer + strlen("BLINK_LAMP_WITH_SHORT_ADDRESS");
+        int shortAddress = atoi(argument); // Convert the argument to an integer
+        if (shortAddress >= 0 && shortAddress <= 63)
+        {
+            // Valid short address, proceed with blinking the lamp
+            ESP_LOGI(TAG, "Received BLINK_LAMP_WITH_SHORT_ADDRESS message for short address %d", shortAddress);
+            // Perform the desired action with the short address
+        }
+        else
+        {
+            // Invalid short address
+            ESP_LOGW(TAG, "Invalid short address %d in BLINK_LAMP_WITH_SHORT_ADDRESS message", shortAddress);
+        }
+    }
+}
+
+char *get_controler_state(void)
+{
+    State_t current_state = get_state();
+    switch (current_state)
+    {
+    case NVS_INIT_STATE:
+        sprintf(response, "{\"status\":\"NVS initialization state\"}");
+        break;
+    case AWAIT_WIFI_PROVISIONING_STATE:
+        sprintf(response, "{\"status\":\"Awaiting WiFi provisioning\"}");
+        break;
+    case WIFI_PROVISIONING_STATE:
+        sprintf(response, "{\"status\":\"WiFi provisioning state\"}");
+        break;
+    case WIFI_CONNECTED_STATE:
+        sprintf(response, "{\"status\":\"WiFi connected state\"}");
+        break;
+    case DALI_COMMUNICATION_INIT_STATE:
+        sprintf(response, "{\"status\":\"DALI communication initialization state\"}");
+        break;
+    case DALI_COMMUNICATION_OK_STATE:
+        sprintf(response, "{\"status\":\"DALI communication OK state\"}");
+        break;
+    case ANALYZE_DALI_BUS_STATE:
+        sprintf(response, "{\"status\":\"Analyzing DALI bus state\"}");
+        break;
+    case TCP_SERVER_INIT_STATE:
+        sprintf(response, "{\"status\":\"TCP server initialization state\"}");
+        break;
+    case MDNS_INIT_STATE:
+        sprintf(response, "{\"status\":\"mDNS initialization state\"}");
+        break;
+    case SYSTEM_RUNNING_STATE:
+        sprintf(response, "{\"status\":\"System is running\"}");
+        break;
+    case NO_WIFI_STATE:
+        sprintf(response, "{\"status\":\"No WiFi connection\"}");
+        break;
+    case DALI_BUS_CORRUPTED_STATE:
+        sprintf(response, "{\"status\":\"DALI bus corrupted state\"}");
+        break;
+    case DALI_BUS_NOT_COMMISIONED_STATE:
+        sprintf(response, "{\"status\":\"DALI bus not commissioned state\"}");
+        break;
+    case NO_RESPONSE_ON_DALI_BUS:
+        sprintf(response, "{\"status\":\"No response on DALI bus\"}");
+        break;
+    default:
+        sprintf(response, "{\"status\":\"Unknown state or prehaps a programmer added a state without adding it here! Dammit programmer!\"}");
+        break;
+    }
+    return response;
+}
+
+void send_tcp_message(char *message)
+{
+    if (global_socket == -1)
+    {
+        ESP_LOGE(TAG, "Socket not connected from SEND_TCP_MSG");
+        transmit_error_flag = true;
+        strcpy(transmit, message);
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Sending TCP message: %s", message);
+        send(global_socket, message, strlen(message), 0);
     }
 }

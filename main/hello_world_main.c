@@ -26,10 +26,21 @@
 #include "mDNS_handler.h"
 #include "State_manager.h"
 #include "Nvs_handler.h"
+#include "constants.h"
+
+void process_DALI_response(DALI_Status response);
 
 static const char *TAG = "app_main";
 
-void process_DALI_response(DALI_Status response);
+uint8_t short_addresses_on_bus_count = 0;
+uint8_t short_addresses_on_bus[64];
+
+uint8_t uncommissioned_devices_on_bus_count = 0;
+address24_t uncommissioned_devices_on_bus_addresses[64];
+
+uint8_t error_counter = 0;
+bool await_user_action = false;
+EventGroupHandle_t tcpEventGroup;
 
 void taskOne(void *parameter)
 {
@@ -43,6 +54,7 @@ void taskOne(void *parameter)
 
 void app_main(void)
 {
+    tcpEventGroup = xEventGroupCreate();
     init_state_manager();
     xTaskCreate(state_task, "state_task", 2048, NULL, 5, NULL);
     State_t current_state;
@@ -85,8 +97,28 @@ void app_main(void)
 
         case ANALYZE_DALI_BUS_STATE:
             ESP_LOGI(TAG, "Analyzing DALI bus");
-            DALI_Status check = check_drivers_commissioned();
+            DALI_Status check = check_drivers_commissioned(&short_addresses_on_bus_count, short_addresses_on_bus, &uncommissioned_devices_on_bus_count, uncommissioned_devices_on_bus_addresses);
+            ESP_LOGI(TAG, "Short addresses on bus: %u", short_addresses_on_bus_count);
+            ESP_LOGI(TAG, "Uncommissioned devices on bus: %u", uncommissioned_devices_on_bus_count);
+            for (uint8_t i = 0; i < short_addresses_on_bus_count; i++)
+            {
+                ESP_LOGI(TAG, "Short address on bus: %u", short_addresses_on_bus[i]);
+            }
+            for (uint8_t i = 0; i < uncommissioned_devices_on_bus_count; i++)
+            {
+                ESP_LOGI(TAG, "Uncommissioned device on bus: %lu", uncommissioned_devices_on_bus_addresses[i]);
+            }
             process_DALI_response(check); // Assert if OK or some ERROR and set state.
+            break;
+
+        case DALI_COMMISION_BUS_STATE:
+            ESP_LOGI(TAG, "Commissioning DALI bus");
+            short_addresses_on_bus_count = commission_bus();
+            for (size_t i = 0; i < short_addresses_on_bus_count; i++)
+            {
+                short_addresses_on_bus[i] = i;
+            }
+            set_state(ANALYZE_DALI_BUS_STATE);
             break;
 
         case DALI_COMMUNICATION_OK_STATE:
@@ -94,7 +126,14 @@ void app_main(void)
             break;
 
         case SYSTEM_RUNNING_STATE:
-            vTaskDelay(20000 / portTICK_PERIOD_MS);
+            ESP_LOGI(TAG, "System running");
+            for (size_t i = 0; i < short_addresses_on_bus_count; i++)
+            {
+                Controle_gear_values_t controle_gear = fetch_controle_gear_data(short_addresses_on_bus[i]);
+                printObject(controle_gear);
+            }
+            const EventBits_t tcpEventBits = xEventGroupWaitBits(tcpEventGroup, TCP_EVENT_BIT, pdTRUE, pdFALSE, ONE_HOUR);
+            break;
 
             // ****************************   Error states    ****************************
 
@@ -105,15 +144,43 @@ void app_main(void)
 
         case DALI_BUS_CORRUPTED_STATE:
             ESP_LOGE(TAG, "DALI bus corrupted");
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            if (error_counter < 3)
+            {
+                error_counter++;
+                ESP_LOGI(TAG, "Trying to re-analyze DALI bus");
+                set_state(ANALYZE_DALI_BUS_STATE);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+            }
+            else
+            {
+                send_tcp_message("{\"status\":\"DALI bus corrupted\"}");
+                error_counter = 0;
+            }
             break;
 
         case DALI_BUS_NOT_COMMISIONED_STATE:
+            ESP_LOGE(TAG, "DALI bus not commissioned");
+            if (await_user_action)
+            {
+                send_tcp_message("{\"status\":\"DALI bus not commissioned\"}");
+                await_user_action = true;
+            }
             break;
 
         case NO_RESPONSE_ON_DALI_BUS:
             ESP_LOGE(TAG, "No response on DALI bus");
-            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            if (error_counter < 3)
+            {
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                ESP_LOGI(TAG, "Trying to re-analyze DALI bus");
+                set_state(ANALYZE_DALI_BUS_STATE);
+                error_counter++;
+            }
+            else
+            {
+                send_tcp_message("{\"status\":\"No response on DALI bus\"}");
+                error_counter = 0;
+            }
             break;
 
         default:

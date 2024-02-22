@@ -62,11 +62,24 @@ uint8_t commission_bus()
 }
 
 /**
- * @brief Check if any of the drivers on the bus are commisioned
- * @details This function checks if any of the drivers on the bus are commisioned, by iterating all the shord addresses and return true if any response.
- * @return true if there is any drivers on the bus commisioned, false otherwise
+ * @brief Check if any drivers on the bus are commissioned and return bus state
+ *
+ * This function checks the commissioning state of all devices on the DALI bus.
+ * It iterates through all possible short addresses and checks for a response.
+ * Based on the presence of commissioned and uncommissioned devices, it returns:
+ * - DALI_ERR_BUS_NOT_COMMISIONED: No commissioned devices found
+ * - DALI_ERR_BUS_CORRUPTED: Both commissioned and uncommissioned devices found
+ * - DALI_ERR_NO_RESPONSE_ON_BUS: No devices found
+ * - DALI_OK: Only commissioned devices found
+ *
+ * @param[out] short_addresses_on_bus_count Number of commissioned drivers found
+ * @param[out] short_addresses_on_bus Array containing short addresses of commissioned drivers
+ * @param[out] uncommissioned_devices_on_bus_count Number of uncommissioned devices found
+ * @param[out] uncommissioned_devices_on_bus_address Array containing addresses of uncommissioned devices
+ * @return DALI_Status indicating overall bus state
+ *
  */
-DALI_Status check_drivers_commissioned()
+DALI_Status check_drivers_commissioned(uint8_t *short_addresses_on_bus_count, uint8_t short_addresses_on_bus[64], uint8_t *uncommissioned_devices_on_bus_count, address24_t uncommissioned_devices_on_bus_address[64])
 {
     uint8_t totalDriversOnBus = 0;
     uint8_t driversWithShortAddressOnBus = 0;
@@ -82,39 +95,51 @@ DALI_Status check_drivers_commissioned()
             break;
         }
         set_search_address(address);
+        set_search_address(address);
+
+        send_DALI_Tx(QUERY_SHORT_ADDRESS);
+        vTaskDelay(DELAY_AWAIT_RESPONSE);
+        if (new_data_available())
+        {
+            uint8_t response = (get_new_data() >> 1);
+            clear_new_data_flag();
+            short_addresses_on_bus[*short_addresses_on_bus_count] = response;
+            (*short_addresses_on_bus_count)++;
+        }
+        else
+        {
+            uncommissioned_devices_on_bus_address[*uncommissioned_devices_on_bus_count] = address;
+            (*uncommissioned_devices_on_bus_count)++;
+        }
+
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
         send_DALI_Tx(WITHDRAW); // Ensure that the search address is set on the driver, otherwise this will fail. In this case, the search address is set in the function set_search_address.
         vTaskDelay(DELAY_BETWEEN_COMMANDS);
         totalDriversOnBus++;
     }
 
-    for (int i = 0; i < 64; i++)
-    {
-        if (verify_short_address(i))
-        {
-            driversWithShortAddressOnBus++;
-        }
-        vTaskDelay(DELAY_AWAIT_RESPONSE);
-    }
     send_DALI_Tx(TERMINATE);
-    if (totalDriversOnBus != driversWithShortAddressOnBus)
+    if (*uncommissioned_devices_on_bus_count != 0)
     {
-        if (driversWithShortAddressOnBus == 0)
-        {
-            return DALI_ERR_BUS_NOT_COMMISIONED;
-        }
-        else
+        if (*short_addresses_on_bus_count != 0)
         {
             return DALI_ERR_BUS_CORRUPTED;
         }
-    }
-    else if (totalDriversOnBus == 0)
-    {
-        return DALI_ERR_NO_RESPONSE_ON_BUS;
+        else
+        {
+            return DALI_ERR_BUS_NOT_COMMISIONED;
+        }
     }
     else
     {
-        return DALI_OK;
+        if (*short_addresses_on_bus_count == 0)
+        {
+            return DALI_ERR_NO_RESPONSE_ON_BUS;
+        }
+        else
+        {
+            return DALI_OK;
+        }
     }
 }
 
