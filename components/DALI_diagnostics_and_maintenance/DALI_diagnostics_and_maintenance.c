@@ -25,28 +25,6 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
     Controle_gear_values_t controle_gear;
     DALI_Status dali_status;
 
-    // printf("Manufactor ID: %llx\n", read_manufactor_id(short_address));
-
-    // Memory bank 505
-    uint32_t new_operating_time = 0;
-    bit24_t new_start_counter = 0;
-    uint16_t new_external_supply_voltage = 0;
-    uint8_t new_external_supply_voltage_frequenzy = 0;
-    uint8_t new_power_factor;
-    uint8_t new_overall_faliure_condition;
-    uint8_t new_external_supply_undervoltage;
-    uint8_t new_external_supply_undervoltage_counter;
-    uint8_t new_external_supply_overvoltage;
-    uint8_t new_external_supply_overvoltage_counter;
-    uint8_t new_output_power_limitation;
-    uint8_t new_output_power_limitation_counter;
-    uint8_t new_thermal_derating;
-    uint8_t new_thermal_derating_counter;
-    uint8_t new_thermal_shutdown;
-    uint8_t new_thermal_shutdown_counter;
-    uint8_t new_temperature;
-    uint8_t new_output_current_percent;
-
     send_DALI_Tx(0x0181);
     vTaskDelay(DELAY_BETWEEN_COMMANDS);
     send_DALI_Tx(0x0181);
@@ -54,75 +32,77 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
 
     write_memory_location(short_address, MEMORY_BANK_205, LOCK_BYTE, 0x55);
 
-    dali_status = get_operating_time(short_address, &new_operating_time);
+    controle_gear.manufacturer_id = read_manufactor_id(short_address); // TODO implement error handling/logging
+
+    dali_status = get_operating_time(short_address, &controle_gear.operating_time);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting operating time: %d\n", dali_status);
 
-    dali_status = get_start_counter(short_address, &new_start_counter);
+    dali_status = get_start_counter(short_address, &controle_gear.start_counter);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting start counter: %d\n", dali_status);
 
-    dali_status = get_external_supply_voltage(short_address, &new_external_supply_voltage);
+    dali_status = get_external_supply_voltage(short_address, &controle_gear.external_supply_voltage);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting external supply voltage: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_VOLTAGE_FREQUENZY, &new_external_supply_voltage_frequenzy);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_VOLTAGE_FREQUENZY, &controle_gear.external_supply_voltage_frequency);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting external supply voltage frequenzy: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, POWER_FACTOR, &new_power_factor);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, POWER_FACTOR, &controle_gear.power_factor);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting power factor: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OVERALL_FALIURE_CONDITION, &new_overall_faliure_condition);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OVERALL_FALIURE_CONDITION, &controle_gear.overall_faliure_condition);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting overall faliure condition: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_UNDERVOLTAGE, &new_external_supply_undervoltage);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_UNDERVOLTAGE, &controle_gear.external_supply_undervoltage);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting external supply undervoltage: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_UNDERVOLTAGE_COUNTER, &new_external_supply_undervoltage_counter);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_UNDERVOLTAGE_COUNTER, &controle_gear.external_supply_undervoltage_counter);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting external supply undervoltage counter: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_OVERVOLTAGE, &new_external_supply_overvoltage);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_OVERVOLTAGE, &controle_gear.external_supply_overvoltage);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting external supply overvoltage: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_OVERVOLTAGE_COUNTER, &new_external_supply_overvoltage_counter);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, EXTERNAL_SUPPLY_OVERVOLTAGE_COUNTER, &controle_gear.external_supply_overvoltage_counter);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting external supply overvoltage counter: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_POWER_LIMITATION, &new_output_power_limitation);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_POWER_LIMITATION, &controle_gear.output_power_limitation);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting output power limitation: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_POWER_LIMITATION_COUNTER, &new_output_power_limitation_counter);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_POWER_LIMITATION_COUNTER, &controle_gear.output_power_limitation_counter);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting output power limitation counter: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_DERATING, &new_thermal_derating);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_DERATING, &controle_gear.thermal_derating);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting thermal derating: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_DERATING_COUNTER, &new_thermal_derating_counter);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_DERATING_COUNTER, &controle_gear.thermal_derating_counter);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting thermal derating counter: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_SHUTDOWN, &new_thermal_shutdown);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_SHUTDOWN, &controle_gear.thermal_shutdown);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting thermal shutdown: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_SHUTDOWN_COUNTER, &new_thermal_shutdown_counter);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, THERMAL_SHUTDOWN_COUNTER, &controle_gear.thermal_shutdown_counter);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting thermal shutdown counter: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, TEMPERATURE, &new_temperature);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, TEMPERATURE, &controle_gear.temperature);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting temperature: %d\n", dali_status);
 
-    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_CURRENT_PERCENT, &new_output_current_percent);
+    dali_status = read_memory_location(short_address, MEMORY_BANK_205, OUTPUT_CURRENT_PERCENT, &controle_gear.output_current_percent);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting output current percent: %d\n", dali_status);
 
@@ -130,28 +110,6 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
     dali_status = read_memory_location(short_address, MEMORY_BANK_205, 0x02, &locableByte);
     if (dali_status != DALI_OK)
         ESP_LOGE(TAG, "Error getting locable byte: %d\n", dali_status);
-
-    uint64_t manufactoring_id = read_manufactor_id(short_address); // TODO implement error handling/logging
-
-    controle_gear.operating_time = new_operating_time;
-    controle_gear.start_counter = new_start_counter;
-    controle_gear.external_supply_voltage = new_external_supply_voltage;
-    controle_gear.external_supply_voltage_frequency = new_external_supply_voltage_frequenzy;
-    controle_gear.power_factor = new_power_factor;
-    controle_gear.overall_faliure_condition = new_overall_faliure_condition;
-    controle_gear.external_supply_undervoltage = new_external_supply_undervoltage;
-    controle_gear.external_supply_undervoltage_counter = new_external_supply_undervoltage_counter;
-    controle_gear.external_supply_overvoltage = new_external_supply_overvoltage;
-    controle_gear.external_supply_overvoltage_counter = new_external_supply_overvoltage_counter;
-    controle_gear.output_power_limitation = new_output_power_limitation;
-    controle_gear.output_power_limitation_counter = new_output_power_limitation_counter;
-    controle_gear.thermal_derating = new_thermal_derating;
-    controle_gear.thermal_derating_counter = new_thermal_derating_counter;
-    controle_gear.thermal_shutdown = new_thermal_shutdown;
-    controle_gear.thermal_shutdown_counter = new_thermal_shutdown_counter;
-    controle_gear.temperature = new_temperature;
-    controle_gear.output_current_percent = new_output_current_percent;
-    controle_gear.manufacturer_id = manufactoring_id;
 
     return controle_gear;
 }
