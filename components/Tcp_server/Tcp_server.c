@@ -158,6 +158,7 @@ void message_handler(char *rx_buffer, int len, int socket)
     {
         ESP_LOGI(TAG, "Received COMMISION_DALI_BUS message");
         set_state(DALI_COMMISION_BUS_STATE);
+        xEventGroupSetBits(tcpEventGroup, TCP_EVENT_BIT);
     }
 }
 

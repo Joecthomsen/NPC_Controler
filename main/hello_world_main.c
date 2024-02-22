@@ -28,6 +28,8 @@
 #include "Nvs_handler.h"
 #include "constants.h"
 
+void process_DALI_response(DALI_Status response);
+
 static const char *TAG = "app_main";
 
 uint8_t short_addresses_on_bus_count = 0;
@@ -36,10 +38,9 @@ uint8_t short_addresses_on_bus[64];
 uint8_t uncommissioned_devices_on_bus_count = 0;
 address24_t uncommissioned_devices_on_bus_addresses[64];
 
-void process_DALI_response(DALI_Status response);
-
 uint8_t error_counter = 0;
 bool await_user_action = false;
+EventGroupHandle_t tcpEventGroup;
 
 void taskOne(void *parameter)
 {
@@ -53,7 +54,7 @@ void taskOne(void *parameter)
 
 void app_main(void)
 {
-    // EventGroupHandle_t event_group_tcp = xEventGroupCreate();
+    tcpEventGroup = xEventGroupCreate();
     init_state_manager();
     xTaskCreate(state_task, "state_task", 2048, NULL, 5, NULL);
     State_t current_state;
@@ -131,7 +132,7 @@ void app_main(void)
                 Controle_gear_values_t controle_gear = fetch_controle_gear_data(short_addresses_on_bus[i]);
                 printObject(controle_gear);
             }
-            vTaskDelay(ONE_HOUR);
+            const EventBits_t tcpEventBits = xEventGroupWaitBits(tcpEventGroup, TCP_EVENT_BIT, pdTRUE, pdFALSE, ONE_HOUR);
             break;
 
             // ****************************   Error states    ****************************
