@@ -160,6 +160,23 @@ void message_handler(char *rx_buffer, int len, int socket)
         set_state(DALI_COMMISION_BUS_STATE);
         xEventGroupSetBits(tcpEventGroup, TCP_EVENT_BIT);
     }
+    else if (strncmp(rx_buffer, "BLINK_LAMP_WITH_SHORT_ADDRESS", strlen("BLINK_LAMP_WITH_SHORT_ADDRESS")) == 0)
+    {
+        // Extract the short address argument
+        char *argument = rx_buffer + strlen("BLINK_LAMP_WITH_SHORT_ADDRESS");
+        int shortAddress = atoi(argument); // Convert the argument to an integer
+        if (shortAddress >= 0 && shortAddress <= 63)
+        {
+            // Valid short address, proceed with blinking the lamp
+            ESP_LOGI(TAG, "Received BLINK_LAMP_WITH_SHORT_ADDRESS message for short address %d", shortAddress);
+            // Perform the desired action with the short address
+        }
+        else
+        {
+            // Invalid short address
+            ESP_LOGW(TAG, "Invalid short address %d in BLINK_LAMP_WITH_SHORT_ADDRESS message", shortAddress);
+        }
+    }
 }
 
 char *get_controler_state(void)
