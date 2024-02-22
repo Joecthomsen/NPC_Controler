@@ -13,6 +13,7 @@
 #include "State_manager.h"
 #include "API_controler.h"
 #include "constants.h"
+#include "DALI_communication.h"
 
 #define TAG "TCP_SERVER"
 
@@ -28,11 +29,14 @@ typedef enum
 } tcp_event_type_t;
 
 bool transmit_error_flag = false;
-
 static tcp_event_type_t current_event = EVENT_NONE;
 
+// TCP prototypes
 void message_handler(char *rx_buffer, int len, int socket);
+
+// API prototype - move in the future
 char *get_controler_state(void);
+void blink_lamp(uint8_t short_address);
 
 void tcp_server_task(void *pvParameters)
 {
@@ -179,6 +183,23 @@ void message_handler(char *rx_buffer, int len, int socket)
     }
 }
 
+void send_tcp_message(char *message)
+{
+    if (global_socket == -1)
+    {
+        ESP_LOGE(TAG, "Socket not connected from SEND_TCP_MSG");
+        transmit_error_flag = true;
+        strcpy(transmit, message);
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Sending TCP message: %s", message);
+        send(global_socket, message, strlen(message), 0);
+    }
+}
+
+//******************************** API functions implemented here until i get the linker to work - should move to API.c. *******************************
+
 char *get_controler_state(void)
 {
     State_t current_state = get_state();
@@ -233,17 +254,7 @@ char *get_controler_state(void)
     return response;
 }
 
-void send_tcp_message(char *message)
+void blink_lamp(uint8_t shortAddress)
 {
-    if (global_socket == -1)
-    {
-        ESP_LOGE(TAG, "Socket not connected from SEND_TCP_MSG");
-        transmit_error_flag = true;
-        strcpy(transmit, message);
-    }
-    else
-    {
-        ESP_LOGI(TAG, "Sending TCP message: %s", message);
-        send(global_socket, message, strlen(message), 0);
-    }
+    send_DALI_Tx()
 }
