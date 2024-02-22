@@ -4,6 +4,7 @@
 #include "freertos/FreeRTOS.h"
 
 int state_machine = NVS_INIT_STATE;
+int last_state = 0;
 bool state_manager_inited = false;
 
 void state_task(void *parameter)
@@ -83,6 +84,14 @@ void state_task(void *parameter)
             vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
+        case BLINK_LAMP_STATE:
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, LOW);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
+            break;
+
         case DALI_BUS_NOT_COMMISIONED_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, LOW);
@@ -149,6 +158,7 @@ void state_task(void *parameter)
 
 void set_state(int new_state)
 {
+    last_state = state_machine;
     if (state_manager_inited == false)
     {
         ESP_LOGE("State_manager", "State manager not initialized");
@@ -212,4 +222,9 @@ void init_state_manager()
     gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
 
     state_manager_inited = true;
+}
+
+State_t get_last_state()
+{
+    return last_state;
 }

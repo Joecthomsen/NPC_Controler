@@ -42,6 +42,8 @@ uint8_t error_counter = 0;
 bool await_user_action = false;
 EventGroupHandle_t tcpEventGroup;
 
+uint8_t selected_driver = 0;
+
 void taskOne(void *parameter)
 {
     while (true)
@@ -119,6 +121,16 @@ void app_main(void)
                 short_addresses_on_bus[i] = i;
             }
             set_state(ANALYZE_DALI_BUS_STATE);
+            break;
+
+        case BLINK_LAMP_STATE:
+            ESP_LOGI(TAG, "Blinking lamp");
+            uint16_t cmd_turn_on = 0xFEFE; // Turn all lamps on //(selected_driver << 9) | 0xFE;
+            uint16_t cmd_turn_off = selected_driver << 9;
+            send_DALI_Tx(cmd_turn_off);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
+            send_DALI_Tx(cmd_turn_on);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
         case DALI_COMMUNICATION_OK_STATE:

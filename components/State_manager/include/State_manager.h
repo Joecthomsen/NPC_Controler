@@ -26,6 +26,7 @@ typedef enum State_t
     DALI_COMMUNICATION_INIT_STATE,
     DALI_COMMUNICATION_OK_STATE,
     DALI_COMMISION_BUS_STATE,
+    BLINK_LAMP_STATE,
     ANALYZE_DALI_BUS_STATE,
     TCP_SERVER_INIT_STATE,
     MDNS_INIT_STATE,
@@ -43,5 +44,6 @@ void set_state(int state);
 State_t get_state();
 void init_state_manager();
 void state_task(void *parameter);
+State_t get_last_state();
 
 // #endif /* STATE_MANAGER_H */
