@@ -29,9 +29,16 @@
 
 static const char *TAG = "app_main";
 
+uint8_t short_addresses_on_bus_count = 0;
+uint8_t short_addresses_on_bus[64];
+
+uint8_t uncommissioned_devices_on_bus_count = 0;
+address24_t uncommissioned_devices_on_bus_addresses[64];
+
 void process_DALI_response(DALI_Status response);
 
 uint8_t error_counter = 0;
+bool await_user_action = false;
 
 void taskOne(void *parameter)
 {
@@ -87,7 +94,17 @@ void app_main(void)
 
         case ANALYZE_DALI_BUS_STATE:
             ESP_LOGI(TAG, "Analyzing DALI bus");
-            DALI_Status check = check_drivers_commissioned();
+            DALI_Status check = check_drivers_commissioned(&short_addresses_on_bus_count, short_addresses_on_bus, &uncommissioned_devices_on_bus_count, uncommissioned_devices_on_bus_addresses);
+            ESP_LOGI(TAG, "Short addresses on bus: %u", short_addresses_on_bus_count);
+            ESP_LOGI(TAG, "Uncommissioned devices on bus: %u", uncommissioned_devices_on_bus_count);
+            for (uint8_t i = 0; i < short_addresses_on_bus_count; i++)
+            {
+                ESP_LOGI(TAG, "Short address on bus: %u", short_addresses_on_bus[i]);
+            }
+            for (uint8_t i = 0; i < uncommissioned_devices_on_bus_count; i++)
+            {
+                ESP_LOGI(TAG, "Uncommissioned device on bus: %lu", uncommissioned_devices_on_bus_addresses[i]);
+            }
             process_DALI_response(check); // Assert if OK or some ERROR and set state.
             break;
 
@@ -96,7 +113,13 @@ void app_main(void)
             break;
 
         case SYSTEM_RUNNING_STATE:
-            vTaskDelay(20000 / portTICK_PERIOD_MS);
+            ESP_LOGI(TAG, "System running");
+            for (size_t i = 0; i < short_addresses_on_bus_count; i++)
+            {
+                Controle_gear_values_t controle_gear = fetch_controle_gear_data(short_addresses_on_bus[i]);
+                printObject(controle_gear);
+            }
+            vTaskDelay(ONE_HOUR);
             break;
 
             // ****************************   Error states    ****************************
@@ -120,10 +143,15 @@ void app_main(void)
                 send_tcp_message("{\"status\":\"DALI bus corrupted\"}");
                 error_counter = 0;
             }
-
             break;
 
         case DALI_BUS_NOT_COMMISIONED_STATE:
+            ESP_LOGE(TAG, "DALI bus not commissioned");
+            if (await_user_action)
+            {
+                send_tcp_message("{\"status\":\"DALI bus not commissioned\"}");
+                await_user_action = true;
+            }
             break;
 
         case NO_RESPONSE_ON_DALI_BUS:
@@ -140,7 +168,6 @@ void app_main(void)
                 send_tcp_message("{\"status\":\"No response on DALI bus\"}");
                 error_counter = 0;
             }
-
             break;
 
         default:
