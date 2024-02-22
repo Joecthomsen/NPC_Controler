@@ -173,13 +173,20 @@ void message_handler(char *rx_buffer, int len, int socket)
         {
             // Valid short address, proceed with blinking the lamp
             ESP_LOGI(TAG, "Received BLINK_LAMP_WITH_SHORT_ADDRESS message for short address %d", shortAddress);
-            // Perform the desired action with the short address
+            xEventGroupSetBits(tcpEventGroup, TCP_EVENT_BIT);
+            blink_lamp(shortAddress);
         }
         else
         {
             // Invalid short address
             ESP_LOGW(TAG, "Invalid short address %d in BLINK_LAMP_WITH_SHORT_ADDRESS message", shortAddress);
         }
+    }
+    else if (strcmp(rx_buffer, "STOP_BLINK") == 0)
+    {
+        ESP_LOGI(TAG, "Received STOP_BLINK message");
+        State_t last_state = get_last_state();
+        set_state(last_state);
     }
 }
 
@@ -256,5 +263,13 @@ char *get_controler_state(void)
 
 void blink_lamp(uint8_t shortAddress)
 {
-    send_DALI_Tx()
+    selected_driver = shortAddress;
+    set_state(BLINK_LAMP_STATE);
+}
+
+void turn_lamp_on(uint8_t short_address)
+{
+}
+void turn_lamp_off(uint8_t short_address)
+{
 }
