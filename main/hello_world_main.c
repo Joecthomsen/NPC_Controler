@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <inttypes.h>
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
@@ -13,121 +14,304 @@
 #include "esp_chip_info.h"
 #include "esp_flash.h"
 #include "esp_system.h"
-//#include "DALI_transmit.h"
+#include "DALI_communication.h"
+#include "DALI_addressing.h"
+#include "DALI_diagnostics_and_maintenance.h"
 #include "driver/gptimer.h"
 #include "esp_log.h"
+#include "Wifi_provisioning.h"
+#include <wifi_provisioning/manager.h>
+#include "Tcp_server.h"
+#include "../managed_components/espressif__mdns/include/mdns.h"
+#include "mDNS_handler.h"
+#include "State_manager.h"
+#include "Nvs_handler.h"
+#include "constants.h"
 
+void process_DALI_response(DALI_Status response);
 
-#define TIMER_FREQUENZ 1000000
+static const char *TAG = "app_main";
 
-gptimer_handle_t gptimer = NULL;   //Init the timer
-gptimer_config_t gptimer_config;    //Init timer config struct
-gptimer_alarm_config_t gptimer_alarm_config;    //Init alarm config struct
+uint8_t short_addresses_on_bus_count = 0;
+uint8_t short_addresses_on_bus[64];
 
-static const char * TAG = "MAIN_APP";
-esp_err_t err;
+uint8_t uncommissioned_devices_on_bus_count = 0;
+address24_t uncommissioned_devices_on_bus_addresses[64];
 
-bool toggle = false;
+uint8_t error_counter = 0;
+bool await_user_action = false;
+EventGroupHandle_t tcpEventGroup;
 
-
-static bool IRAM_ATTR onTimer(gptimer_handle_t timer, const gptimer_alarm_event_data_t *edata, void *user_ctx){
-    BaseType_t high_task_awoken = pdFALSE;
-    toggle =!toggle;
-
-    return (high_task_awoken == pdTRUE);
-}
-
-void taskOne(void *parameter){
+void taskOne(void *parameter)
+{
     while (true)
     {
-        printf("Starting timer...\n");
-        err = gptimer_start(gptimer);
-        if (err != ESP_OK) {
-            ESP_LOGE(TAG, "Failed to start the timer");
-        }
-        else
-            ESP_LOGI(TAG, "Timer started successfully");
-        vTaskDelay(15000/portTICK_PERIOD_MS);
+        printf("Task one...\n");
+        vTaskDelay(15000 / portTICK_PERIOD_MS);
         vTaskDelete(NULL);
     }
-        
 }
-
-void taskTwo(void *parameter){
-    while (true)
-    {
-        //sendDALI_TX(0xFE00);
-        uint64_t raw_count;
-        err = gptimer_get_raw_count(gptimer, &raw_count);
-        printf("counter %llu\n", raw_count);
-        printf("toggle %d\n", toggle);
-        vTaskDelay(1000/portTICK_PERIOD_MS);
-        
-    }
-}
-
-
 
 void app_main(void)
 {
-    //init_DALI_transmit();
-
-    gptimer_config.clk_src = GPTIMER_CLK_SRC_DEFAULT;   //Set clock source to default   
-    gptimer_config.direction = GPTIMER_COUNT_UP;        //Set counting direction to UP   
-    gptimer_config.resolution_hz = TIMER_FREQUENZ;      //Set timer frequenz (to 1MHz)                                                                
-    gptimer_config.intr_priority = 1;                              
-                                                        
-    gptimer_alarm_config.alarm_count = 10000000;//TIMER_FREQUENZ/BAUD_RATE;  //Set the alarm trigger point
-    gptimer_alarm_config.reload_count = 0; //Reload value upon alarm trigger
-    gptimer_alarm_config.flags.auto_reload_on_alarm = 1;         
-
-    err = gptimer_new_timer(&gptimer_config, &gptimer);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to configure the timer");
-    }
-    else
-        ESP_LOGI(TAG, "Timer configured successfully");
-
-    err = gptimer_set_alarm_action(gptimer, &gptimer_alarm_config);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to set alarm action");
-    }
-    else
-        ESP_LOGI(TAG, "Alarm action set successfully");
-
-    gptimer_event_callbacks_t cbs = 
+    tcpEventGroup = xEventGroupCreate();
+    init_state_manager();
+    xTaskCreate(state_task, "state_task", 2048, NULL, 5, NULL);
+    State_t current_state;
+    while (true)
     {
-        .on_alarm = onTimer, // register user callback
-    };
+        current_state = get_state();
+        switch (current_state)
+        {
+            // ****************************   Normal states    ****************************
 
-    err = gptimer_register_event_callbacks(gptimer, &cbs, NULL);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to register event callback for timer");
+        case NVS_INIT_STATE:
+            init_nvs_handler();
+            ESP_LOGI(TAG, "NVS initialized");
+            set_state(AWAIT_WIFI_PROVISIONING_STATE);
+            break;
+
+        case AWAIT_WIFI_PROVISIONING_STATE:
+            init_wifi_provisioning();
+            ESP_LOGI(TAG, "Wifi provisioning initialized");
+            set_state(DALI_COMMUNICATION_INIT_STATE);
+            break;
+
+        case DALI_COMMUNICATION_INIT_STATE:
+            init_DALI_communication();
+            ESP_LOGI(TAG, "DALI communication initialized");
+            set_state(TCP_SERVER_INIT_STATE);
+            break;
+
+        case TCP_SERVER_INIT_STATE:
+            xTaskCreate(tcp_server_task, "tcp_server", 2048, NULL, 5, NULL);
+            ESP_LOGI(TAG, "TCP server initialized");
+            set_state(MDNS_INIT_STATE);
+            break;
+
+        case MDNS_INIT_STATE:
+            mDNS_init();
+            ESP_LOGI(TAG, "mDNS initialized");
+            set_state(ANALYZE_DALI_BUS_STATE);
+            break;
+
+        case ANALYZE_DALI_BUS_STATE:
+            ESP_LOGI(TAG, "Analyzing DALI bus");
+            DALI_Status check = check_drivers_commissioned(&short_addresses_on_bus_count, short_addresses_on_bus, &uncommissioned_devices_on_bus_count, uncommissioned_devices_on_bus_addresses);
+            ESP_LOGI(TAG, "Short addresses on bus: %u", short_addresses_on_bus_count);
+            ESP_LOGI(TAG, "Uncommissioned devices on bus: %u", uncommissioned_devices_on_bus_count);
+            for (uint8_t i = 0; i < short_addresses_on_bus_count; i++)
+            {
+                ESP_LOGI(TAG, "Short address on bus: %u", short_addresses_on_bus[i]);
+            }
+            for (uint8_t i = 0; i < uncommissioned_devices_on_bus_count; i++)
+            {
+                ESP_LOGI(TAG, "Uncommissioned device on bus: %lu", uncommissioned_devices_on_bus_addresses[i]);
+            }
+            process_DALI_response(check); // Assert if OK or some ERROR and set state.
+            break;
+
+        case DALI_COMMISION_BUS_STATE:
+            ESP_LOGI(TAG, "Commissioning DALI bus");
+            short_addresses_on_bus_count = commission_bus();
+            for (size_t i = 0; i < short_addresses_on_bus_count; i++)
+            {
+                short_addresses_on_bus[i] = i;
+            }
+            set_state(ANALYZE_DALI_BUS_STATE);
+            break;
+
+        case DALI_COMMUNICATION_OK_STATE:
+            set_state(SYSTEM_RUNNING_STATE);
+            break;
+
+        case SYSTEM_RUNNING_STATE:
+            ESP_LOGI(TAG, "System running");
+            for (size_t i = 0; i < short_addresses_on_bus_count; i++)
+            {
+                Controle_gear_values_t controle_gear = fetch_controle_gear_data(short_addresses_on_bus[i]);
+                printObject(controle_gear);
+            }
+            const EventBits_t tcpEventBits = xEventGroupWaitBits(tcpEventGroup, TCP_EVENT_BIT, pdTRUE, pdFALSE, ONE_HOUR);
+            break;
+
+            // ****************************   Error states    ****************************
+
+        case NO_WIFI_STATE: // This state is already handled in the Wifi_provisioning.c
+            ESP_LOGE(TAG, "No wifi");
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            break;
+
+        case DALI_BUS_CORRUPTED_STATE:
+            ESP_LOGE(TAG, "DALI bus corrupted");
+            if (error_counter < 3)
+            {
+                error_counter++;
+                ESP_LOGI(TAG, "Trying to re-analyze DALI bus");
+                set_state(ANALYZE_DALI_BUS_STATE);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+            }
+            else
+            {
+                send_tcp_message("{\"status\":\"DALI bus corrupted\"}");
+                error_counter = 0;
+            }
+            break;
+
+        case DALI_BUS_NOT_COMMISIONED_STATE:
+            ESP_LOGE(TAG, "DALI bus not commissioned");
+            if (await_user_action)
+            {
+                send_tcp_message("{\"status\":\"DALI bus not commissioned\"}");
+                await_user_action = true;
+            }
+            break;
+
+        case NO_RESPONSE_ON_DALI_BUS:
+            ESP_LOGE(TAG, "No response on DALI bus");
+            if (error_counter < 3)
+            {
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+                ESP_LOGI(TAG, "Trying to re-analyze DALI bus");
+                set_state(ANALYZE_DALI_BUS_STATE);
+                error_counter++;
+            }
+            else
+            {
+                send_tcp_message("{\"status\":\"No response on DALI bus\"}");
+                error_counter = 0;
+            }
+            break;
+
+        default:
+            ESP_LOGE(TAG, "Unknown state at line %d in run_task", __LINE__);
+            vTaskDelay(10000 / portTICK_PERIOD_MS);
+            break;
+        }
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+    }
+}
+
+void process_DALI_response(DALI_Status response)
+{
+    if (response == DALI_OK)
+    {
+        ESP_LOGI(TAG, "DALI bus OK");
+        set_state(DALI_COMMUNICATION_OK_STATE);
+    }
+    else if (response == DALI_ERR_BUS_NOT_COMMISIONED)
+    {
+        ESP_LOGE(TAG, "DALI bus not commisioned");
+        set_state(DALI_BUS_NOT_COMMISIONED_STATE);
+    }
+    else if (response == DALI_ERR_NO_RESPONSE_ON_BUS)
+    {
+        ESP_LOGE(TAG, "No response on DALI bus");
+        set_state(NO_RESPONSE_ON_DALI_BUS);
+    }
+    else if (response == DALI_ERR_BUS_CORRUPTED)
+    {
+        ESP_LOGE(TAG, "DALI bus corrupted");
+        set_state(DALI_BUS_CORRUPTED_STATE);
     }
     else
-        ESP_LOGI(TAG, "Timer event callback registered successfully");
-
-    err = gptimer_enable(gptimer);
-    if (err != ESP_OK) {
-        ESP_LOGE(TAG, "Failed to enable the timer in DALI init function");
+    {
+        ESP_LOGE(TAG, "Unknown error");
     }
-    else{
-        ESP_LOGI(TAG, "Timer enabled in DALI_transmit_init() function");
-    }
-
-
-    xTaskCreatePinnedToCore(taskOne, "task one", 2048, NULL, 2, NULL, 0);
-    
-    xTaskCreatePinnedToCore(taskTwo, "task two", 2048, NULL, 2, NULL, 0);
-
-
-
-
-        
-/*             printf("Hello, world, once again!\n");
-            vTaskDelay(2000 / portTICK_PERIOD_MS); // sleep for 2 seconds
-            sendDALI_TX(off);
-            vTaskDelay(2000 / portTICK_PERIOD_MS); // sleep for 2 seconds */
-
-        
 }
+
+// void run(void *parameter)
+// {
+//     while (true)
+//     {
+//         State_t current_state = get_state();
+//         switch (current_state)
+//         {
+//         case SYSTEM_RUNNING_STATE:
+//             printf("System OK\n");
+//             break;
+
+//         default:
+//             break;
+//         }
+
+//         Controle_gear_values_t controle_gear_1 = fetch_controle_gear_data(0x00);
+//         vTaskDelay(1000 / portTICK_PERIOD_MS);
+//         Controle_gear_values_t controle_gear_2 = fetch_controle_gear_data(0x01);
+//         printObject(controle_gear_1);
+//         printObject(controle_gear_2);
+
+//         // uint8_t driversOnBus = commission_bus();
+//         // printf("Drivers on bus: %d\n", driversOnBus);
+
+//         printf("Turn light off...\n");
+//         send_DALI_Tx(0xFE00);
+//         vTaskDelay(1000 / portTICK_PERIOD_MS);
+//         printf("incrementer: %d\n", incrementer);
+//         printf("incrementer2: %d\n", incrementer2);
+//         printf("Turn light on...\n");
+//         send_DALI_Tx(0xFEFE);
+//         vTaskDelay(1000 / portTICK_PERIOD_MS);
+//         printf("incrementer: %d\n", incrementer);
+//         printf("incrementer2: %d\n", incrementer2);
+
+//         printf("Blinking lamp 0\n");
+//         send_DALI_Tx(0x0000);
+//         vTaskDelay(1000 / portTICK_PERIOD_MS);
+//         send_DALI_Tx(0x00FE);
+//         vTaskDelay(1000 / portTICK_PERIOD_MS);
+//         printf("Blinking lamp 1\n");
+//         send_DALI_Tx(0x0200);
+//         vTaskDelay(1000 / portTICK_PERIOD_MS);
+//         send_DALI_Tx(0x02FE);
+//         vTaskDelay(1000 / portTICK_PERIOD_MS);
+//     }
+// }
+
+// void app_main(void)
+// {
+//     init_state_manager();
+//     xTaskCreate(state_task, "state_task", 512, NULL, 5, NULL);
+//     init_nvs_handler();
+//     init_wifi_provisioning(); // Error handling is already handled in the init function
+//     set_state(DALI_COMMUNICATION_INIT_STATE);
+//     init_DALI_communication();
+//     set_state(ANALYZE_DALI_BUS_STATE);
+//     DALI_Status check = check_drivers_commissioned();
+
+//     // uint8_t masterValue = 210;
+//     // nvs_write_uint8("GigaTest", masterValue);
+
+//     // printf("Value read: %d\n", nvs_read_uint8("GigaTest"));
+
+//     if (check == DALI_OK)
+//     {
+//         set_state(SYSTEM_RUNNING_STATE);
+//         printf("All drivers commissioned\n");
+//     }
+//     else if (check == DALI_ERR_BUS_NOT_COMMISIONED)
+//     {
+//         set_state(DALI_BUS_NOT_COMMISIONED_STATE);
+//         printf("Bus not commissioned\n");
+//     }
+//     else if (check == DALI_ERR_NO_RESPONSE_ON_BUS)
+//     {
+//         set_state(NO_RESPONSE_ON_DALI_BUS);
+//         printf("No response on the bus\n");
+//     }
+//     else if (check == DALI_ERR_BUS_CORRUPTED)
+//     {
+//         set_state(DALI_BUS_CORRUPTED_STATE);
+//         printf("Uncommissioned driver\n");
+//     }
+//     else
+//     {
+//         printf("Unknown error: %d\n", check);
+//     }
+
+//     xTaskCreate(tcp_server_task, "tcp_server", 4096, NULL, 5, NULL);
+//     mDNS_init();
+//     xTaskCreatePinnedToCore(run, "task two", 2048, NULL, 2, NULL, 0);
+
+//     /* Initialize NVS partition */
+// }
