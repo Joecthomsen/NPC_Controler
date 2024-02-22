@@ -27,6 +27,7 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
 
     // printf("Manufactor ID: %llx\n", read_manufactor_id(short_address));
 
+    // Memory bank 505
     uint32_t new_operating_time = 0;
     bit24_t new_start_counter = 0;
     uint16_t new_external_supply_voltage = 0;
