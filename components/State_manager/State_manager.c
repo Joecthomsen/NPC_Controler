@@ -55,6 +55,22 @@ void state_task(void *parameter)
             vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
+        case DALI_COMMISION_BUS_STATE:
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, HIGH);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, HIGH);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, LOW);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, HIGH);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, LOW);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            break;
+
         case TCP_SERVER_INIT_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, HIGH);

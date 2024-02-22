@@ -12,6 +12,7 @@
 #include "lwip/netdb.h"
 #include "State_manager.h"
 #include "API_controler.h"
+#include "constants.h"
 
 #define TAG "TCP_SERVER"
 
@@ -153,9 +154,10 @@ void message_handler(char *rx_buffer, int len, int socket)
         uint8_t current_state_len = strlen(current_state);
         send(socket, current_state, current_state_len, 0);
     }
-    else if (strcmp(rx_buffer, "EVENT_COMMISION_DALI_BUS") == 0)
+    else if (strcmp(rx_buffer, "COMMISION_DALI_BUS") == 0)
     {
-        current_event = EVENT_COMMISION_DALI_BUS;
+        ESP_LOGI(TAG, "Received COMMISION_DALI_BUS message");
+        set_state(DALI_COMMISION_BUS_STATE);
     }
 }
 

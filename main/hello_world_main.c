@@ -26,6 +26,7 @@
 #include "mDNS_handler.h"
 #include "State_manager.h"
 #include "Nvs_handler.h"
+#include "constants.h"
 
 static const char *TAG = "app_main";
 
@@ -52,6 +53,7 @@ void taskOne(void *parameter)
 
 void app_main(void)
 {
+    // EventGroupHandle_t event_group_tcp = xEventGroupCreate();
     init_state_manager();
     xTaskCreate(state_task, "state_task", 2048, NULL, 5, NULL);
     State_t current_state;
@@ -106,6 +108,16 @@ void app_main(void)
                 ESP_LOGI(TAG, "Uncommissioned device on bus: %lu", uncommissioned_devices_on_bus_addresses[i]);
             }
             process_DALI_response(check); // Assert if OK or some ERROR and set state.
+            break;
+
+        case DALI_COMMISION_BUS_STATE:
+            ESP_LOGI(TAG, "Commissioning DALI bus");
+            short_addresses_on_bus_count = commission_bus();
+            for (size_t i = 0; i < short_addresses_on_bus_count; i++)
+            {
+                short_addresses_on_bus[i] = i;
+            }
+            set_state(ANALYZE_DALI_BUS_STATE);
             break;
 
         case DALI_COMMUNICATION_OK_STATE:
