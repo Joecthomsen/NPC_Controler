@@ -13,6 +13,7 @@
 #include "State_manager.h"
 #include "API_controler.h"
 #include "constants.h"
+#include "DALI_communication.h"
 
 #define TAG "TCP_SERVER"
 
@@ -28,11 +29,14 @@ typedef enum
 } tcp_event_type_t;
 
 bool transmit_error_flag = false;
-
 static tcp_event_type_t current_event = EVENT_NONE;
 
+// TCP prototypes
 void message_handler(char *rx_buffer, int len, int socket);
+
+// API prototype - move in the future
 char *get_controler_state(void);
+void blink_lamp(uint8_t short_address);
 
 void tcp_server_task(void *pvParameters)
 {
@@ -169,7 +173,8 @@ void message_handler(char *rx_buffer, int len, int socket)
         {
             // Valid short address, proceed with blinking the lamp
             ESP_LOGI(TAG, "Received BLINK_LAMP_WITH_SHORT_ADDRESS message for short address %d", shortAddress);
-            // Perform the desired action with the short address
+            xEventGroupSetBits(tcpEventGroup, TCP_EVENT_BIT);
+            blink_lamp(shortAddress);
         }
         else
         {
@@ -177,7 +182,30 @@ void message_handler(char *rx_buffer, int len, int socket)
             ESP_LOGW(TAG, "Invalid short address %d in BLINK_LAMP_WITH_SHORT_ADDRESS message", shortAddress);
         }
     }
+    else if (strcmp(rx_buffer, "STOP_BLINK") == 0)
+    {
+        ESP_LOGI(TAG, "Received STOP_BLINK message");
+        State_t last_state = get_last_state();
+        set_state(last_state);
+    }
 }
+
+void send_tcp_message(char *message)
+{
+    if (global_socket == -1)
+    {
+        ESP_LOGE(TAG, "Socket not connected from SEND_TCP_MSG");
+        transmit_error_flag = true;
+        strcpy(transmit, message);
+    }
+    else
+    {
+        ESP_LOGI(TAG, "Sending TCP message: %s", message);
+        send(global_socket, message, strlen(message), 0);
+    }
+}
+
+//******************************** API functions implemented here until i get the linker to work - should move to API.c. *******************************
 
 char *get_controler_state(void)
 {
@@ -233,17 +261,15 @@ char *get_controler_state(void)
     return response;
 }
 
-void send_tcp_message(char *message)
+void blink_lamp(uint8_t shortAddress)
 {
-    if (global_socket == -1)
-    {
-        ESP_LOGE(TAG, "Socket not connected from SEND_TCP_MSG");
-        transmit_error_flag = true;
-        strcpy(transmit, message);
-    }
-    else
-    {
-        ESP_LOGI(TAG, "Sending TCP message: %s", message);
-        send(global_socket, message, strlen(message), 0);
-    }
+    selected_driver = shortAddress;
+    set_state(BLINK_LAMP_STATE);
+}
+
+void turn_lamp_on(uint8_t short_address)
+{
+}
+void turn_lamp_off(uint8_t short_address)
+{
 }
