@@ -27,6 +27,7 @@
 #include "State_manager.h"
 #include "Nvs_handler.h"
 #include "constants.h"
+#include "Input_button.h"
 
 void process_DALI_response(DALI_Status response);
 

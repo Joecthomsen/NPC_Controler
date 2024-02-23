@@ -74,7 +74,9 @@
         "nvs_flash.h": "c",
         "netdb.h": "c",
         "sockets.h": "c",
-        "api.h": "c"
+        "api.h": "c",
+        "nvs_handler.h": "c",
+        "constants.h": "c"
     },
     "idf.flashType": "UART"
 }
