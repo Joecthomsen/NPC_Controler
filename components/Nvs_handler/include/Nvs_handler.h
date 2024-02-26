@@ -79,5 +79,12 @@ void nvs_write_uint8(const char *key, uint8_t value);
 void nvs_write_uint64(const char *key, uint64_t value);
 uint8_t nvs_read_uint8(const char *key);
 uint64_t nvs_read_uint64(const char *key);
+
 void nvs_delete_key_value_pair(const char *key);
-// bool nvs_value_exists(const char *key);
+void nvs_write_manufactoring_id(const char *key, uint64_t value);
+uint64_t nvs_read_manufactoring_id(const char *key);
+char *nvs_read_all_manufactoring_ids(void);
+bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count);
+
+// char *get_manufacturing_id(uint8_t short_address);
+// bool manufactoring_id_stored(const char *key);

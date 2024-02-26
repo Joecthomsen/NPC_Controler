@@ -135,6 +135,12 @@ void app_main(void)
             break;
 
         case DALI_COMMUNICATION_OK_STATE:
+            set_state(SYNCRONIZE_NVS_STATE);
+            break;
+
+        case SYNCRONIZE_NVS_STATE:
+            ESP_LOGI(TAG, "Synchronizing NVS");
+            nvs_synchronize(short_addresses_on_bus, short_addresses_on_bus_count);
             set_state(SYSTEM_RUNNING_STATE);
             break;
 

@@ -14,6 +14,8 @@
 #include "API_controler.h"
 #include "constants.h"
 #include "DALI_communication.h"
+#include "Nvs_handler.h"
+#include "constants.h"
 
 #define TAG "TCP_SERVER"
 
@@ -187,6 +189,25 @@ void message_handler(char *rx_buffer, int len, int socket)
         ESP_LOGI(TAG, "Received STOP_BLINK message");
         State_t last_state = get_last_state();
         set_state(last_state);
+    }
+    else if (strncmp(rx_buffer, "GET_MANUFACTORING_ID_ON_BUS", strlen("GET_MANUFACTORING_ID_ON_BUS")) == 0)
+    {
+        char *manu_id = nvs_read_all_manufactoring_ids();
+        uint16_t manu_id_len = strlen(manu_id);
+        send(socket, manu_id, manu_id_len, 0);
+
+        // char *argument = rx_buffer + strlen("GET_MANUFACTORING_ID_ON_BUS");
+        // uint8_t shortAddress = atoi(argument); // Convert the argument to an integer
+        // if (shortAddress >= 0 && shortAddress <= 63)
+        // {
+        //     // Valid short address
+        //     ESP_LOGI(TAG, "Received GET_MANUFACTORING_ID_ON_BUS message for short address %d", shortAddress);
+        // }
+        // else
+        // {
+        //     // Invalid short address
+        //     ESP_LOGW(TAG, "Invalid short address %d in GET_MANUFACTORING_ID_ON_BUS message", shortAddress);
+        // }
     }
 }
 
