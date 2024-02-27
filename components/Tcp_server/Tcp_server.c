@@ -211,7 +211,7 @@ void message_handler(char *rx_buffer, int len, int socket)
         if (token_len > 0)
         {
             // Call nvs_set_token function with the token and its length
-            bool result = nvs_set_token(token_start, token_len);
+            bool result = nvs_set_string("token", "token", token_start); // nvs_set_token(token_start, token_len);
 
             // Check if setting the token was successful
             if (result)
@@ -236,7 +236,8 @@ void message_handler(char *rx_buffer, int len, int socket)
     else if (strcmp(rx_buffer, "GET_TOKEN") == 0)
     {
         char token[512];
-        nvs_get_token(token);
+        // nvs_get_token(token);
+        nvs_get_string("token", "token", token);
         uint16_t token_len = strlen(token);
         send(socket, token, token_len, 0);
     }

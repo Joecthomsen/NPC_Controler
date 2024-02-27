@@ -46,50 +46,17 @@ void init_nvs_handler()
     // }
 }
 
-// bool nvs_set_string(char *namespace, char *token, size_t token_len)
-// {
-//     nvs_handle_t my_handle;
-//     esp_err_t err = nvs_open("token", NVS_READWRITE, &my_handle);
-//     if (err != ESP_OK)
-//     {
-//         ESP_LOGE("nvs_synchronize", "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
-//         return false;
-//     }
-//     // Write token to NVS
-//     err = nvs_set_str(my_handle, "token", token);
-//     if (err != ESP_OK)
-//     {
-//         ESP_LOGE("nvs_set_token", "Error (%s) storing token in NVS", esp_err_to_name(err));
-//         nvs_close(my_handle);
-//         return false;
-//     }
-
-//     // Commit changes to NVS
-//     err = nvs_commit(my_handle);
-//     if (err != ESP_OK)
-//     {
-//         ESP_LOGE("nvs_set_token", "Error (%s) committing changes to NVS", esp_err_to_name(err));
-//         nvs_close(my_handle);
-//         return false;
-//     }
-
-//     // Close NVS handle
-//     nvs_close(my_handle);
-
-//     return true;
-// }
-
-bool nvs_set_token(char *token, size_t token_len)
+bool nvs_set_string(char *namespace, const char *key, char *value)
 {
     nvs_handle_t my_handle;
-    esp_err_t err = nvs_open("token", NVS_READWRITE, &my_handle);
+    esp_err_t err = nvs_open(namespace, NVS_READWRITE, &my_handle);
     if (err != ESP_OK)
     {
         ESP_LOGE("nvs_synchronize", "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
         return false;
     }
     // Write token to NVS
-    err = nvs_set_str(my_handle, "token", token);
+    err = nvs_set_str(my_handle, key, value);
     if (err != ESP_OK)
     {
         ESP_LOGE("nvs_set_token", "Error (%s) storing token in NVS", esp_err_to_name(err));
@@ -112,47 +79,34 @@ bool nvs_set_token(char *token, size_t token_len)
     return true;
 }
 
-bool nvs_get_token(char *token)
+bool nvs_get_string(char *namespace, const char *key, char *return_value)
 {
     nvs_handle_t my_handle;
-    esp_err_t err = nvs_open("token", NVS_READWRITE, &my_handle);
+    esp_err_t err = nvs_open(namespace, NVS_READWRITE, &my_handle);
     if (err != ESP_OK)
     {
         ESP_LOGE("nvs_synchronize", "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
         return false;
     }
 
-    size_t token_len = 512;                     // Assuming maximum token length
-    char *token_buffer = malloc(token_len + 1); // +1 for null terminator
+    size_t len = 512;               // Assuming maximum token length
+    char *buffer = malloc(len + 1); // +1 for null terminator
 
-    if (token_buffer == NULL)
+    if (buffer == NULL)
     {
         ESP_LOGE("nvs_synchronize", "Failed to allocate memory for token buffer!\n");
         nvs_close(my_handle);
         return false;
     }
 
-    // Read token from NVS into token_buffer
-    err = nvs_get_str(my_handle, "token", token_buffer, &token_len);
-
+    // Write token to NVS
+    err = nvs_get_str(my_handle, key, return_value, &len);
     if (err != ESP_OK)
     {
-        ESP_LOGE("nvs_get_token", "Error (%s) reading token from NVS", esp_err_to_name(err));
-        free(token_buffer); // Free allocated memory
+        ESP_LOGE("nvs_set_token", "Error (%s) storing token in NVS", esp_err_to_name(err));
         nvs_close(my_handle);
         return false;
     }
-
-    // Copy token from token_buffer to the provided token pointer
-    strncpy(token, token_buffer, token_len);
-    token[token_len] = '\0'; // Ensure null-termination of the string
-
-    // Free allocated memory
-    free(token_buffer);
-
-    // Close NVS handle
-    nvs_close(my_handle);
-
     return true;
 }
 
