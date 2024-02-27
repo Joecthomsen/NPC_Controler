@@ -42,7 +42,7 @@ void blink_lamp(uint8_t short_address);
 
 void tcp_server_task(void *pvParameters)
 {
-    char rx_buffer[128];
+    char rx_buffer[512];
     int addr_family;
     int ip_protocol;
 
@@ -190,24 +190,55 @@ void message_handler(char *rx_buffer, int len, int socket)
         State_t last_state = get_last_state();
         set_state(last_state);
     }
-    else if (strncmp(rx_buffer, "GET_MANUFACTORING_ID_ON_BUS", strlen("GET_MANUFACTORING_ID_ON_BUS")) == 0)
+    else if (strcmp(rx_buffer, "GET_MANUFACTORING_ID_ON_BUS") == 0)
     {
         char *manu_id = nvs_read_all_manufactoring_ids();
         uint16_t manu_id_len = strlen(manu_id);
         send(socket, manu_id, manu_id_len, 0);
+    }
+    else if (strncmp(rx_buffer, "SET_TOKEN", strlen("SET_TOKEN")) == 0)
+    {
+        // Skip "SET_TOKEN" command to get the token
+        char *token_start = rx_buffer + strlen("SET_TOKEN") + 1; // Plus one for the whitespace after the command
 
-        // char *argument = rx_buffer + strlen("GET_MANUFACTORING_ID_ON_BUS");
-        // uint8_t shortAddress = atoi(argument); // Convert the argument to an integer
-        // if (shortAddress >= 0 && shortAddress <= 63)
-        // {
-        //     // Valid short address
-        //     ESP_LOGI(TAG, "Received GET_MANUFACTORING_ID_ON_BUS message for short address %d", shortAddress);
-        // }
-        // else
-        // {
-        //     // Invalid short address
-        //     ESP_LOGW(TAG, "Invalid short address %d in GET_MANUFACTORING_ID_ON_BUS message", shortAddress);
-        // }
+        // Find the end of the token
+        char *token_end = strchr(token_start, '\0');
+
+        // Calculate the length of the token
+        uint16_t token_len = token_end - token_start;
+
+        // Ensure the token length is within bounds
+        if (token_len > 0)
+        {
+            // Call nvs_set_token function with the token and its length
+            bool result = nvs_set_token(token_start, token_len);
+
+            // Check if setting the token was successful
+            if (result)
+            {
+                // If successful, send a success response
+                const char *success_msg = "Token set successfully";
+                send(socket, success_msg, strlen(success_msg), 0);
+            }
+            else
+            {
+                // If unsuccessful, send an error response
+                const char *error_msg = "Failed to set token";
+                send(socket, error_msg, strlen(error_msg), 0);
+            }
+        }
+        else
+        {
+            // Handle case where no token is found
+            // Perhaps send an appropriate response or log a warning
+        }
+    }
+    else if (strcmp(rx_buffer, "GET_TOKEN") == 0)
+    {
+        char token[512];
+        nvs_get_token(token);
+        uint16_t token_len = strlen(token);
+        send(socket, token, token_len, 0);
     }
 }
 
