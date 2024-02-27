@@ -14,6 +14,8 @@
 #include "API_controler.h"
 #include "constants.h"
 #include "DALI_communication.h"
+#include "Nvs_handler.h"
+#include "constants.h"
 
 #define TAG "TCP_SERVER"
 
@@ -40,7 +42,7 @@ void blink_lamp(uint8_t short_address);
 
 void tcp_server_task(void *pvParameters)
 {
-    char rx_buffer[128];
+    char rx_buffer[512];
     int addr_family;
     int ip_protocol;
 
@@ -187,6 +189,98 @@ void message_handler(char *rx_buffer, int len, int socket)
         ESP_LOGI(TAG, "Received STOP_BLINK message");
         State_t last_state = get_last_state();
         set_state(last_state);
+    }
+    else if (strcmp(rx_buffer, "GET_MANUFACTORING_ID_ON_BUS") == 0)
+    {
+        char *manu_id = nvs_read_all_manufactoring_ids();
+        uint16_t manu_id_len = strlen(manu_id);
+        send(socket, manu_id, manu_id_len, 0);
+    }
+    else if (strncmp(rx_buffer, "SET_TOKEN", strlen("SET_TOKEN")) == 0)
+    {
+        // Skip "SET_TOKEN" command to get the token
+        char *token_start = rx_buffer + strlen("SET_TOKEN") + 1; // Plus one for the whitespace after the command
+
+        // Find the end of the token
+        char *token_end = strchr(token_start, '\0');
+
+        // Calculate the length of the token
+        uint16_t token_len = token_end - token_start;
+
+        // Ensure the token length is within bounds
+        if (token_len > 0)
+        {
+            // Call nvs_set_token function with the token and its length
+            bool result = nvs_set_string("authentication", "token", token_start); // nvs_set_token(token_start, token_len);
+
+            // Check if setting the token was successful
+            if (result)
+            {
+                // If successful, send a success response
+                const char *success_msg = "Token set successfully";
+                send(socket, success_msg, strlen(success_msg), 0);
+            }
+            else
+            {
+                // If unsuccessful, send an error response
+                const char *error_msg = "Failed to set token";
+                send(socket, error_msg, strlen(error_msg), 0);
+            }
+        }
+        else
+        {
+            // Handle case where no token is found
+            // Perhaps send an appropriate response or log a warning
+        }
+    }
+    else if (strcmp(rx_buffer, "GET_TOKEN") == 0)
+    {
+        char token[512];
+        // nvs_get_token(token);
+        nvs_get_string("authentication", "token", token);
+        uint16_t token_len = strlen(token);
+        send(socket, token, token_len, 0);
+    }
+    else if (strncmp(rx_buffer, "SET_EMAIL", strlen("SET_EMAIL")) == 0)
+    {
+        // Skip "SET_EMAIL" command to get the email
+        char *email_start = rx_buffer + strlen("SET_EMAIL") + 1; // Plus one for the whitespace after the command
+        // Find the end of the email
+        char *email_end = strchr(email_start, '\0');
+        // Calculate the length of the email
+        uint16_t email_len = email_end - email_start;
+        // Ensure the email length is within bounds
+        if (email_len > 0)
+        {
+            // Call nvs_set_email function with the email and its length
+            bool result = nvs_set_string("authentication", "email", email_start); // nvs_set_email(email_start, email_len);
+            // Check if setting the email was successful
+            if (result)
+            {
+                // If successful, send a success response
+                const char *success_msg = "Email set successfully";
+                send(socket, success_msg, strlen(success_msg), 0);
+            }
+            else
+            {
+                // If unsuccessful, send an error response
+                const char *error_msg = "Failed to set email";
+                send(socket, error_msg, strlen(error_msg), 0);
+            }
+        }
+        else
+        {
+            // Handle case where no email is found
+            // Perhaps send an appropriate response or log a warning
+        }
+    }
+    else if (strcmp(rx_buffer, "GET_EMAIL") == 0)
+    {
+        char email[512];
+        // nvs_get_email(email);
+        nvs_get_string("authentication", "email", email);
+        uint16_t email_len = strlen(email);
+        send(socket, email, email_len, 0);
     }
 }
 

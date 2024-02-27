@@ -76,7 +76,9 @@
         "sockets.h": "c",
         "api.h": "c",
         "nvs_handler.h": "c",
-        "constants.h": "c"
+        "constants.h": "c",
+        "mdns_handler.h": "c",
+        "input_button.h": "c"
     },
     "idf.flashType": "UART"
 }

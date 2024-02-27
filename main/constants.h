@@ -20,3 +20,6 @@ typedef enum DALI_Status
 } DALI_Status;
 
 extern EventGroupHandle_t tcpEventGroup;
+
+extern uint8_t short_addresses_on_bus_count;
+extern uint8_t short_addresses_on_bus[64];
