@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdint.h>
 
 // Memory bank 205 addresses
