@@ -78,7 +78,9 @@
         "nvs_handler.h": "c",
         "constants.h": "c",
         "mdns_handler.h": "c",
-        "input_button.h": "c"
+        "input_button.h": "c",
+        "stdio.h": "c",
+        "manager.h": "c"
     },
     "idf.flashType": "UART"
 }

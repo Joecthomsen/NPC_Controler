@@ -28,6 +28,7 @@
 #include "Nvs_handler.h"
 #include "constants.h"
 #include "Input_button.h"
+#include "Http_handler.h"
 
 void process_DALI_response(DALI_Status response);
 
@@ -139,7 +140,9 @@ void app_main(void)
             for (size_t i = 0; i < short_addresses_on_bus_count; i++)
             {
                 Controle_gear_values_t controle_gear = fetch_controle_gear_data(short_addresses_on_bus[i]);
-                printObject(controle_gear);
+                post_controle_gear_data(&controle_gear);
+                // printObject(controle_gear);
+                // printf("\n*****************************************************************************\n");
             }
             const EventBits_t tcpEventBits = xEventGroupWaitBits(tcpEventGroup, TCP_EVENT_BIT, pdTRUE, pdFALSE, ONE_HOUR);
             break;
