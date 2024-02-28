@@ -92,6 +92,12 @@ void state_task(void *parameter)
             vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
+        case AUTHENTICATION_STATE:
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, HIGH);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
+            break;
+
         case BLINK_LAMP_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, LOW);
             gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);

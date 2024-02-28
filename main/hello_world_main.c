@@ -132,8 +132,11 @@ void app_main(void)
         case SYNCRONIZE_NVS_STATE:
             ESP_LOGI(TAG, "Synchronizing NVS");
             nvs_synchronize(short_addresses_on_bus, short_addresses_on_bus_count);
-            set_state(SYSTEM_RUNNING_STATE);
+            set_state(AUTHENTICATION_STATE);
             break;
+
+        case AUTHENTICATION_STATE:
+            set_state(SYSTEM_RUNNING_STATE);
 
         case SYSTEM_RUNNING_STATE:
             ESP_LOGI(TAG, "System running");
