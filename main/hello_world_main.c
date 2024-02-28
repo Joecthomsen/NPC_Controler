@@ -141,8 +141,8 @@ void app_main(void)
             {
                 Controle_gear_values_t controle_gear = fetch_controle_gear_data(short_addresses_on_bus[i]);
                 post_controle_gear_data(&controle_gear);
-                printObject(controle_gear);
-                printf("\n*****************************************************************************\n");
+                // printObject(controle_gear);
+                // printf("\n*****************************************************************************\n");
             }
             const EventBits_t tcpEventBits = xEventGroupWaitBits(tcpEventGroup, TCP_EVENT_BIT, pdTRUE, pdFALSE, ONE_HOUR);
             break;

@@ -30,6 +30,20 @@ void create_json_object(const char **keys, const char **values, int num_pairs, c
     json_buffer[strlen(json_buffer) - 1] = '}';
 }
 
+esp_err_t client_event_post_handler(esp_http_client_event_t *evt)
+{
+    switch (evt->event_id)
+    {
+    case HTTP_EVENT_ON_DATA:
+        printf("HTTP_EVENT_ON_DATA, len: %d data: %s\n", evt->data_len, (char *)evt->data);
+        break;
+
+    default:
+        break;
+    }
+    return ESP_OK;
+}
+
 // Function to send HTTP POST request with serialized JSON string
 Http_status post_json_data(const char **keys, const char **values, int num_pairs)
 {
@@ -43,12 +57,28 @@ Http_status post_json_data(const char **keys, const char **values, int num_pairs
     // Replace the following lines with your HTTP POST request logic using esp_http_client
     // Example:
     esp_http_client_config_t config = {
-        .url = URL,
+        .url = "http://65.108.92.248/controleGear/new_data_instance", //"http://httpbin.org/post",
         .method = HTTP_METHOD_POST,
-        .buffer_size = strlen(json_buffer) + 1, // Add 1 for null terminator
-        .cert_pem = NULL};
+        //.buffer_size = strlen(json_buffer) + 1, // Add 1 for null terminator
+        .cert_pem = NULL,
+        .event_handler = client_event_post_handler};
 
-    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_http_client_handle_t client = esp_http_client_init(&config); // client_event_post_handler;
+
+    esp_http_client_set_post_field(client, json_buffer, strlen(json_buffer));
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_err_t err = esp_http_client_perform(client);
+    if (err == ESP_OK)
+    {
+        printf("HTTP POST Status = %d, content_length = %lld\n",
+               esp_http_client_get_status_code(client),
+               esp_http_client_get_content_length(client));
+    }
+    else
+    {
+        printf("Error perform http request %s", esp_err_to_name(err));
+        return 2;
+    }
 
     // esp_http_client_handle_t client = esp_http_client_init(&config);
     // esp_err_t err = esp_http_client_perform(client);
