@@ -282,6 +282,41 @@ void message_handler(char *rx_buffer, int len, int socket)
         uint16_t email_len = strlen(email);
         send(socket, email, email_len, 0);
     }
+    else if (strncmp(rx_buffer, "SET_REFRESH_TOKEN", strlen("SET_REFRESH_TOKEN")) == 0)
+    {
+        // Skip "SET_REFRESH_TOKEN" command to get the refresh token
+        char *refresh_token_start = rx_buffer + strlen("SET_REFRESH_TOKEN") + 1; // Plus one for the whitespace after the command
+        // Find the end of the refresh token
+        char *refresh_token_end = strchr(refresh_token_start, '\0');
+        // Calculate the length of the refresh token
+        uint16_t refresh_token_len = refresh_token_end - refresh_token_start;
+        // Ensure the refresh token length is within bounds
+        if (refresh_token_len > 0)
+        {
+            // Call nvs_set_refresh_token function with the refresh token and its length
+            bool result = nvs_set_string("authentication", "refresh_token", refresh_token_start); // nvs_set_refresh_token(refresh_token_start, refresh_token_len);
+            // Check if setting the refresh token was successful
+            if (result)
+            {
+                // If successful, send a success response
+                const char *success_msg = "Refresh token set successfully";
+                send(socket, success_msg, strlen(success_msg), 0);
+            }
+        }
+        else
+        {
+            // Handle case where no refresh token is found
+            // Perhaps send an appropriate response or log a warning
+        }
+    }
+    else if (strcmp(rx_buffer, "GET_REFRESH_TOKEN") == 0)
+    {
+        char refresh_token[512];
+        // nvs_get_refresh_token(refresh_token);
+        nvs_get_string("authentication", "refresh_token", refresh_token);
+        uint16_t refresh_token_len = strlen(refresh_token);
+        send(socket, refresh_token, refresh_token_len, 0);
+    }
 }
 
 void send_tcp_message(char *message)
@@ -332,6 +367,9 @@ char *get_controler_state(void)
         break;
     case MDNS_INIT_STATE:
         sprintf(response, "{\"status\":\"mDNS initialization state\"}");
+        break;
+    case AUTHENTICATION_STATE:
+        sprintf(response, "{\"status\":\"Authentication state\"}");
         break;
     case SYSTEM_RUNNING_STATE:
         sprintf(response, "{\"status\":\"System is running\"}");

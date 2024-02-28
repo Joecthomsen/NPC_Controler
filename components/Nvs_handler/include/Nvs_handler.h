@@ -96,5 +96,7 @@ bool nvs_get_email(char *email);
 bool nvs_set_string(char *namespace, const char *key, char *value);
 bool nvs_get_string(char *namespace, const char *key, char *return_value);
 
+bool authenticated(void);
+
 // char *get_manufacturing_id(uint8_t short_address);
 // bool manufactoring_id_stored(const char *key);

@@ -136,7 +136,23 @@ void app_main(void)
             break;
 
         case AUTHENTICATION_STATE:
-            set_state(SYSTEM_RUNNING_STATE);
+            ESP_LOGI(TAG, "System authentication");
+            while (1)
+            {
+                if (authenticated())
+                {
+                    ESP_LOGI(TAG, "System authenticated");
+                    set_state(SYSTEM_RUNNING_STATE);
+                    break;
+                }
+                else
+                {
+                    ESP_LOGI(TAG, "System not authenticated");
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
+                }
+            }
+
+            break;
 
         case SYSTEM_RUNNING_STATE:
             ESP_LOGI(TAG, "System running");

@@ -1,10 +1,76 @@
 #include <stdio.h>
 #include "Http_handler.h"
 #include "esp_http_client.h"
+#include "Nvs_handler.h"
+#include "esp_log.h"
 
 #define JSON_BUFFER_SIZE 2048 // Adjust this based on your expected JSON size
 
 // esp_err_t send_post_request(const char *url, const char *post_data);
+void create_json_object(const char **keys, const char **values, int num_pairs, char *json_buffer);
+esp_err_t client_event_post_handler(esp_http_client_event_t *evt);
+
+char *get_access_token(void)
+{
+    char *access_token = malloc(sizeof(char) * 512);
+    char refresh_token[512];
+    nvs_get_string("authentication", "refresh_token", refresh_token);
+
+    const char *key[] = {"refreshToken"};
+    const char *value[] = {refresh_token};
+    char json_buffer[1024] = {0};
+    create_json_object(key, value, 1, json_buffer);
+
+    ESP_LOGI("HTTP_HANDLER", "json_buffer: %s", json_buffer);
+
+    esp_http_client_config_t config = {
+        .url = "http://65.108.92.248/auth/refreshToken_device", //"http://httpbin.org/post",
+        .method = HTTP_METHOD_POST,
+        //.buffer_size = strlen(json_buffer) + 1, // Add 1 for null terminator
+        .cert_pem = NULL,
+        .auth_type = HTTP_AUTH_TYPE_NONE,
+        .event_handler = client_event_post_handler};
+
+    esp_http_client_handle_t client = esp_http_client_init(&config); // client_event_post_handler;
+
+    esp_http_client_set_post_field(client, json_buffer, strlen(json_buffer));
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    // esp_http_client_set_header(client, "Accept", "application/json");
+    esp_err_t err;
+
+    int status_code;
+    do
+    {
+        err = esp_http_client_perform(client);
+        status_code = esp_http_client_get_status_code(client);
+    } while (status_code == -1);
+
+    // Check status code
+    if (status_code != 201)
+    {
+        ESP_LOGE("http_client", "Error %d", status_code);
+        return NULL;
+    }
+
+    // Read response data
+    // char *access_token = malloc(512);
+    int content_length = esp_http_client_get_content_length(client);
+    int data_read = esp_http_client_read(client, access_token, content_length);
+
+    if (err == ESP_OK)
+    {
+        printf("HTTP POST Status = %d, content_length = %lld\n",
+               esp_http_client_get_status_code(client),
+               esp_http_client_get_content_length(client));
+    }
+    else
+    {
+        printf("Error perform http request %s", esp_err_to_name(err));
+        return 2;
+    }
+
+    return access_token;
+}
 
 // Helper function to append key-value pair to JSON string
 void append_json_pair(char *json, const char *key, const char *value)
@@ -89,6 +155,7 @@ Http_status post_json_data(const char **keys, const char **values, int num_pairs
 
 Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear)
 {
+    char *access_token = get_access_token();
     // Define keys and values arrays
     const char *keys[] = {
         "manufacturer_id",

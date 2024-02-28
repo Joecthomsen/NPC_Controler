@@ -19,3 +19,4 @@ typedef enum Http_status
 // Http_status post_control_gear_status(Controle_gear_values_t *controle_gear);
 Http_status post_json_data(const char **keys, const char **values, int num_pairs);
 Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear);
+Http_status authenticate_token(const char *token);

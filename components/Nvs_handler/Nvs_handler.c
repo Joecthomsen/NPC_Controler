@@ -440,3 +440,29 @@ char *nvs_read_all_manufactoring_ids()
 
     return csv_buffer;
 }
+
+bool authenticated(void)
+{
+    bool returnValue = false;
+    nvs_handle_t my_handle;
+    esp_err_t err = nvs_open("authentication", NVS_READWRITE, &my_handle);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE("authenticated", "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+    }
+    else
+    {
+        size_t token_len = 0;
+        err = nvs_get_str(my_handle, "refresh_token", NULL, &token_len);
+        if (err != ESP_OK && err != ESP_ERR_NVS_NOT_FOUND)
+        {
+            ESP_LOGE("authenticated", "Error (%s) reading refresh token!\n", esp_err_to_name(err));
+        }
+        else
+        {
+            returnValue = (err == ESP_OK); // If refresh token exists, return true
+        }
+        nvs_close(my_handle);
+    }
+    return returnValue;
+}
