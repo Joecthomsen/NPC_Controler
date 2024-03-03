@@ -2,6 +2,7 @@
 
 #include "esp_err.h"
 #include <stdbool.h>
+#include "../device/include/device.h"
 
 #define NVS_DRIVER_1 "nvs_driver_one"
 #define NVS_DRIVER_2 "nvs_driver_two"
@@ -87,7 +88,7 @@ void nvs_delete_key_value_pair(char *namespace, const char *key);
 void nvs_write_manufactoring_id(const char *key, uint64_t value);
 uint64_t nvs_read_manufactoring_id(const char *key);
 char *nvs_read_all_manufactoring_ids(void);
-bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count, uint64_t *manufactoring_ids);
+bool nvs_synchronize(Device_t devices_on_bus[64], uint8_t short_addresses_count);
 bool nvs_set_token(char *token, size_t token_len);
 bool nvs_get_token(char *token);
 bool nvs_set_email(char *email, size_t email_len);
@@ -96,7 +97,7 @@ bool nvs_get_email(char *email);
 bool nvs_set_string(char *namespace, const char *key, char *value);
 bool nvs_get_string(char *namespace, const char *key, char *return_value);
 
-bool authenticated(void);
+bool authenticated(Device_t devices_on_bus[64], uint16_t devices_on_bus_count);
 
 // char *get_manufacturing_id(uint8_t short_address);
 // bool manufactoring_id_stored(const char *key);

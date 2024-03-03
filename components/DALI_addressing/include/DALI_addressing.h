@@ -4,8 +4,9 @@
 #include <stdbool.h>
 #include "freertos/FreeRTOS.h"
 #include "constants.h"
+#include "device.h"
 
-DALI_Status check_drivers_commissioned(uint8_t *short_addresses_on_bus_count, uint8_t short_addresses_on_bus[64], uint8_t *uncommissioned_devices_on_bus_count, address24_t uncommissioned_devices_on_bus_address[64]);
+DALI_Status check_drivers_commissioned(Device_t devices_on_bus[64], uint8_t *devices_on_bus_count, uint8_t *uncommissioned_devices_on_bus_count, address24_t uncommissioned_devices_on_bus_address[64]);
 uint8_t commission_bus();
 
 void set_all_devices_in_initialize_state();

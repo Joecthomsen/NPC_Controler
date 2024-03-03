@@ -6,19 +6,36 @@
 
 #define JSON_BUFFER_SIZE 2048 // Adjust this based on your expected JSON size
 
+char new_access_token[256];
+
+uint8_t current_device_short_address = 0;
+
 // esp_err_t send_post_request(const char *url, const char *post_data);
 void create_json_object(const char **keys, const char **values, int num_pairs, char *json_buffer);
 esp_err_t http_event_handler(esp_http_client_event_t *evt);
+char *get_access_token(uint8_t short_address);
 
 HTTP_REQUEST_TYPE HTTP_REQUEST = HTTP_NON_REQUEST;
 
-char *get_access_token(void)
+char *get_access_token(uint8_t short_address)
 {
     char *access_token = NULL; // Initialize access_token to NULL
 
+    // ESP_LOGI("Short address", "%d", short_address);
+
+    // Convert short_address to a string representation
+    char short_addr_key[4]; // Assuming the maximum length of the string representation is 3 characters (plus 1 for the null terminator)
+    snprintf(short_addr_key, sizeof(short_addr_key), "%hhu", short_address);
+
     // Your existing code to obtain the refresh token
     char refresh_token[512];
-    nvs_get_string("authentication", "refresh_token", refresh_token);
+    bool error = nvs_get_string("authentication", short_addr_key, refresh_token);
+
+    if (!error)
+    {
+        ESP_LOGI("HTTP_HANDLER", "Error getting refresh token from NVS");
+        return NULL;
+    }
 
     // Create JSON object containing the refresh token
     const char *key[] = {"refreshToken"};
@@ -111,6 +128,7 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
                     strncpy(access_token, token_start, token_len);
                     access_token[token_len] = '\0';
                     printf("Access Token: %s\n", access_token);
+                    strcpy(new_access_token, access_token);
                     // Do whatever you want with the access token here
                 }
                 else
@@ -118,6 +136,36 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
                     printf("Access Token not found or invalid format.\n");
                 }
             }
+
+            // Search for "refreshToken" field manually
+            const char *data2 = (char *)evt->data;
+            const char *token_start2 = strstr(data2, "\"refreshToken\":\"");
+            if (token_start2 != NULL)
+            {
+                token_start2 += strlen("\"refreshToken\":\"");
+                const char *token_end2 = strchr(token_start2, '"');
+                if (token_end2 != NULL)
+                {
+                    int token_len2 = token_end2 - token_start2;
+                    char refresh_token[token_len2 + 1];
+                    strncpy(refresh_token, token_start2, token_len2);
+                    refresh_token[token_len2] = '\0';
+                    printf("Refresh Token: %s\n", refresh_token);
+                    char key[4];
+                    snprintf(key, sizeof(key), "%hhu", current_device_short_address);
+                    bool result = nvs_set_string("authentication", key, refresh_token);
+                    if (!result)
+                    {
+                        ESP_LOGE("HTTP_HANDLER", "Error re-setting refresh token in NVS");
+                    }
+                    // Do whatever you want with the refresh token here
+                }
+                else
+                {
+                    printf("Refresh Token not found or invalid format.\n");
+                }
+            }
+
             else
             {
                 printf("Access Token not found.\n");
@@ -182,7 +230,10 @@ Http_status post_json_data(const char **keys, const char **values, int num_pairs
 
 Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear)
 {
-    char *access_token = get_access_token();
+    current_device_short_address = controle_gear->short_address;
+    char *access_token = get_access_token(controle_gear->short_address); // Will put the access token in new_access_token when http event is triggered
+
+    ESP_LOGI("HTTP_CLIENT", "Access token fetched: %s", new_access_token);
 
     // if (access_token != NULL)
     // {

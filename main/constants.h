@@ -19,14 +19,7 @@ typedef enum DALI_Status
     DALI_ERR_BUS_NOT_COMMISIONED,
 } DALI_Status;
 
-typedef struct Device_t
-{
-    uint8_t short_address;
-    uint64_t manufactoring_id;
-    char refresh_token[512];
-} Device_t;
-
 extern EventGroupHandle_t tcpEventGroup;
 
-extern uint8_t short_addresses_on_bus_count;
+extern uint8_t devices_on_bus_count;
 extern uint8_t short_addresses_on_bus[64];

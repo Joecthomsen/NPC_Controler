@@ -209,7 +209,7 @@ void message_handler(char *rx_buffer, int len, int socket)
         {
             // First token
             *token_end = '\0'; // Null-terminate the first token
-            char *first_token = tokens_start;
+            char *short_address = tokens_start;
 
             // Move to the next character after the whitespace
             tokens_start = token_end + 1;
@@ -220,20 +220,20 @@ void message_handler(char *rx_buffer, int len, int socket)
             if (token_end != NULL)
             {
                 // Second token
-                char *second_token = tokens_start;
+                char *refresh_token = tokens_start;
 
                 // Calculate the lengths of the tokens
-                uint16_t first_token_len = strlen(first_token);
-                uint16_t second_token_len = token_end - second_token;
+                uint16_t first_token_len = strlen(short_address);
+                uint16_t second_token_len = token_end - refresh_token;
 
                 // Ensure both token lengths are within bounds
                 if (first_token_len > 0 && second_token_len > 0)
                 {
                     // Call nvs_set_token function with the tokens and their lengths
-                    bool result = nvs_set_string("authentication", first_token, second_token);
-                    // result &= nvs_set_string("authentication", "refresh_token", second_token);
-                    ESP_LOGI(TAG, "Token 1: %s", first_token);
-                    ESP_LOGI(TAG, "Token 2: %s", second_token);
+                    bool result = nvs_set_string("authentication", short_address, refresh_token);
+                    // result &= nvs_set_string("authentication", "refresh_token", refresh_token);
+                    ESP_LOGI(TAG, "Token 1: %s", short_address);
+                    ESP_LOGI(TAG, "Token 2: %s", refresh_token);
 
                     // Check if setting the tokens was successful
                     if (result)

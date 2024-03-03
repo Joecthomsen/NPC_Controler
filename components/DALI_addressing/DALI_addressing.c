@@ -72,14 +72,14 @@ uint8_t commission_bus()
  * - DALI_ERR_NO_RESPONSE_ON_BUS: No devices found
  * - DALI_OK: Only commissioned devices found
  *
- * @param[out] short_addresses_on_bus_count Number of commissioned drivers found
+ * @param[out] devices_on_bus_count Number of commissioned drivers found
  * @param[out] short_addresses_on_bus Array containing short addresses of commissioned drivers
  * @param[out] uncommissioned_devices_on_bus_count Number of uncommissioned devices found
  * @param[out] uncommissioned_devices_on_bus_address Array containing addresses of uncommissioned devices
  * @return DALI_Status indicating overall bus state
  *
  */
-DALI_Status check_drivers_commissioned(uint8_t *short_addresses_on_bus_count, uint8_t short_addresses_on_bus[64], uint8_t *uncommissioned_devices_on_bus_count, address24_t uncommissioned_devices_on_bus_address[64])
+DALI_Status check_drivers_commissioned(Device_t devices_on_bus[64], uint8_t *devices_on_bus_count, uint8_t *uncommissioned_devices_on_bus_count, address24_t uncommissioned_devices_on_bus_address[64])
 {
     uint8_t totalDriversOnBus = 0;
     uint8_t driversWithShortAddressOnBus = 0;
@@ -103,8 +103,8 @@ DALI_Status check_drivers_commissioned(uint8_t *short_addresses_on_bus_count, ui
         {
             uint8_t response = (get_new_data() >> 1);
             clear_new_data_flag();
-            short_addresses_on_bus[*short_addresses_on_bus_count] = response;
-            (*short_addresses_on_bus_count)++;
+            devices_on_bus[*devices_on_bus_count].short_address = response;
+            (*devices_on_bus_count)++;
         }
         else
         {
@@ -121,7 +121,7 @@ DALI_Status check_drivers_commissioned(uint8_t *short_addresses_on_bus_count, ui
     send_DALI_Tx(TERMINATE);
     if (*uncommissioned_devices_on_bus_count != 0)
     {
-        if (*short_addresses_on_bus_count != 0)
+        if (*devices_on_bus_count != 0)
         {
             return DALI_ERR_BUS_CORRUPTED;
         }
@@ -132,7 +132,7 @@ DALI_Status check_drivers_commissioned(uint8_t *short_addresses_on_bus_count, ui
     }
     else
     {
-        if (*short_addresses_on_bus_count == 0)
+        if (*devices_on_bus_count == 0)
         {
             return DALI_ERR_NO_RESPONSE_ON_BUS;
         }

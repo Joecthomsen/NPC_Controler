@@ -36,6 +36,7 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
     write_memory_location(short_address, MEMORY_BANK_205, LOCK_BYTE, 0x55);
 
     controle_gear.manufacturer_id = read_manufactor_id(short_address); // TODO implement error handling/logging
+    controle_gear.short_address = short_address;
 
     // Fetch memory bank 205
 
