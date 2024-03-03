@@ -208,6 +208,7 @@ Http_status post_json_data(const char **keys, const char **values, int num_pairs
 
     esp_http_client_set_post_field(client, json_buffer, strlen(json_buffer));
     esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_header(client, "token", new_access_token);
     esp_err_t err = esp_http_client_perform(client);
     if (err == ESP_OK)
     {
@@ -244,208 +245,238 @@ Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear)
     // {
     //     ESP_LOGE("HTTP_CLIENT", "Failed to fetch access token");
     // }
-    // // Define keys and values arrays
-    // const char *keys[] = {
-    //     "manufacturer_id",
-    //     "operating_time",
-    //     "start_counter",
-    //     "external_supply_voltage",
-    //     "external_supply_voltage_frequency",
-    //     "power_factor",
-    //     "overall_faliure_condition",
-    //     "external_supply_undervoltage",
-    //     "external_supply_undervoltage_counter",
-    //     "external_supply_overvoltage",
-    //     "external_supply_overvoltage_counter",
-    //     "output_power_limitation",
-    //     "output_power_limitation_counter",
-    //     "thermal_derating",
-    //     "thermal_derating_counter",
-    //     "thermal_shutdown",
-    //     "thermal_shutdown_counter",
-    //     "temperature",
-    //     "output_current_percent",
-    //     "light_source_start_counter_resettable",
-    //     "light_source_start_counter",
-    //     "light_source_on_time_resettable",
-    //     "light_source_on_time",
-    //     "light_source_voltage",
-    //     "light_source_current",
-    //     "light_source_overall_faliure_condition",
-    //     "light_source_overall_faliure_condition_counter",
-    //     "light_source_short_circuit",
-    //     "light_source_short_circuit_counter",
-    //     "light_source_open_circuit",
-    //     "light_source_open_circuit_counter",
-    //     "light_source_thermal_derating",
-    //     "light_source_thermal_derating_counter",
-    //     "light_source_thermal_shutdown",
-    //     "light_source_thermal_shutdown_counter",
-    //     "light_source_temperature",
-    //     "rated_median_usefull_life_of_luminare",
-    //     "internal_controle_gear_reference_temperature",
-    //     "rated_median_usefull_light_source_starts"};
+    // Define keys and values arrays
+    const char *keys[] = {
+        "manufactoringID",
+        "operating_time",
+        "start_counter",
+        "external_supply_voltage",
+        "external_supply_voltage_frequency",
+        "power_factor",
+        "overall_faliure_condition",
+        "external_supply_undervoltage",
+        "external_supply_undervoltage_counter",
+        "external_supply_overvoltage",
+        "external_supply_overvoltage_counter",
+        "output_power_limitation",
+        "output_power_limitation_counter",
+        "thermal_derating",
+        "thermal_derating_counter",
+        "thermal_shutdown",
+        "thermal_shutdown_counter",
+        "temperature",
+        "output_current_percent",
+        "light_source_start_counter_resettable",
+        "light_source_start_counter",
+        "light_source_on_time_resettable",
+        "light_source_on_time",
+        "light_source_voltage",
+        "light_source_current",
+        "light_source_overall_faliure_condition",
+        "light_source_overall_faliure_condition_counter",
+        "light_source_short_circuit",
+        "light_source_short_circuit_counter",
+        "light_source_open_circuit",
+        "light_source_open_circuit_counter",
+        "light_source_thermal_derating",
+        "light_source_thermal_derating_counter",
+        "light_source_thermal_shutdown",
+        "light_source_thermal_shutdown_counter",
+        "light_source_temperature",
+        "rated_median_usefull_life_of_luminare",
+        "internal_controle_gear_reference_temperature",
+        "rated_median_usefull_light_source_starts",
+        "email"};
 
-    // // Allocate memory for the values array
-    // const char **values = (const char **)malloc(sizeof(const char *) * (sizeof(keys) / sizeof(keys[0])));
-    // if (values == NULL)
-    // {
-    //     printf("Error: Failed to allocate memory for values array\n");
-    //     return 0; // Or any appropriate error status
-    // }
+    // Allocate memory for the values array
+    const char **values = (const char **)malloc(sizeof(const char *) * (sizeof(keys) / sizeof(keys[0])));
+    if (values == NULL)
+    {
+        printf("Error: Failed to allocate memory for values array\n");
+        return 0; // Or any appropriate error status
+    }
 
-    // // Convert structure fields to strings and store in values array
-    // for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
-    // {
-    //     char *value_buffer = (char *)malloc(20 * sizeof(char)); // Adjust the buffer size as needed
-    //     if (value_buffer == NULL)
-    //     {
-    //         printf("Error: Failed to allocate memory for value %zu\n", i);
-    //         // Free previously allocated memory
-    //         for (size_t j = 0; j < i; j++)
-    //         {
-    //             free((void *)values[j]);
-    //         }
-    //         free(values);
-    //         return 0; // Or any appropriate error status
-    //     }
+    char email[100];
+    nvs_get_string("authentication", "email", email);
+    // Copy the email to a dynamically allocated buffer
+    char *email_value_buffer = (char *)malloc((strlen(email) + 1) * sizeof(char)); // Allocate memory for email
+    if (email_value_buffer == NULL)
+    {
+        printf("Error: Failed to allocate memory for email value buffer\n");
+        free(values); // Free previously allocated memory
+        return 0;     // Or any appropriate error status
+    }
+    strcpy(email_value_buffer, email); // Copy email to the buffer
 
-    //     // Convert structure field to string
-    //     switch (i)
-    //     {
-    //     case 0:
-    //         sprintf(value_buffer, "%llu", controle_gear->manufacturer_id);
-    //         break;
-    //     case 1:
-    //         sprintf(value_buffer, "%lu", controle_gear->operating_time);
-    //         break;
-    //     case 2:
-    //         sprintf(value_buffer, "%lu", controle_gear->start_counter);
-    //         break;
-    //     case 3:
-    //         sprintf(value_buffer, "%u", controle_gear->external_supply_voltage);
-    //         break;
-    //     case 4:
-    //         sprintf(value_buffer, "%u", controle_gear->external_supply_voltage_frequency);
-    //         break;
-    //     case 5:
-    //         sprintf(value_buffer, "%u", controle_gear->power_factor);
-    //         break;
-    //     case 6:
-    //         sprintf(value_buffer, "%u", controle_gear->overall_faliure_condition);
-    //         break;
-    //     case 7:
-    //         sprintf(value_buffer, "%u", controle_gear->external_supply_undervoltage);
-    //         break;
-    //     case 8:
-    //         sprintf(value_buffer, "%u", controle_gear->external_supply_undervoltage_counter);
-    //         break;
-    //     case 9:
-    //         sprintf(value_buffer, "%u", controle_gear->external_supply_overvoltage);
-    //         break;
-    //     case 10:
-    //         sprintf(value_buffer, "%u", controle_gear->external_supply_overvoltage_counter);
-    //         break;
-    //     case 11:
-    //         sprintf(value_buffer, "%u", controle_gear->output_power_limitation);
-    //         break;
-    //     case 12:
-    //         sprintf(value_buffer, "%u", controle_gear->output_power_limitation_counter);
-    //         break;
-    //     case 13:
-    //         sprintf(value_buffer, "%u", controle_gear->thermal_derating);
-    //         break;
-    //     case 14:
-    //         sprintf(value_buffer, "%u", controle_gear->thermal_derating_counter);
-    //         break;
-    //     case 15:
-    //         sprintf(value_buffer, "%u", controle_gear->thermal_shutdown);
-    //         break;
-    //     case 16:
-    //         sprintf(value_buffer, "%u", controle_gear->thermal_shutdown_counter);
-    //         break;
-    //     case 17:
-    //         sprintf(value_buffer, "%u", controle_gear->temperature);
-    //         break;
-    //     case 18:
-    //         sprintf(value_buffer, "%u", controle_gear->output_current_percent);
-    //         break;
-    //     case 19:
-    //         sprintf(value_buffer, "%lu", controle_gear->light_source_start_counter_resettable);
-    //         break;
-    //     case 20:
-    //         sprintf(value_buffer, "%lu", controle_gear->light_source_start_counter);
-    //         break;
-    //     case 21:
-    //         sprintf(value_buffer, "%lu", controle_gear->light_source_on_time_resettable);
-    //         break;
-    //     case 22:
-    //         sprintf(value_buffer, "%lu", controle_gear->light_source_on_time);
-    //         break;
-    //     case 23:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_voltage);
-    //         break;
-    //     case 24:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_current);
-    //         break;
-    //     case 25:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_overall_faliure_condition);
-    //         break;
-    //     case 26:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_overall_faliure_condition_counter);
-    //         break;
-    //     case 27:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_short_circuit);
-    //         break;
-    //     case 28:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_short_circuit_counter);
-    //         break;
-    //     case 29:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_open_circuit);
-    //         break;
-    //     case 30:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_open_circuit_counter);
-    //         break;
-    //     case 31:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_thermal_derating);
-    //         break;
-    //     case 32:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_thermal_derating_counter);
-    //         break;
-    //     case 33:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_thermal_shutdown);
-    //         break;
-    //     case 34:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_thermal_shutdown_counter);
-    //         break;
-    //     case 35:
-    //         sprintf(value_buffer, "%u", controle_gear->light_source_temperature);
-    //         break;
-    //     case 36:
-    //         sprintf(value_buffer, "%u", controle_gear->rated_median_usefull_life_of_luminare);
-    //         break;
-    //     case 37:
-    //         sprintf(value_buffer, "%u", controle_gear->internal_controle_gear_reference_temperature);
-    //         break;
-    //     case 38:
-    //         sprintf(value_buffer, "%u", controle_gear->rated_median_usefull_light_source_starts);
-    //         break;
-    //     }
+    // Assign the email value buffer to the values array
+    values[sizeof(keys) / sizeof(keys[0]) - 1] = email_value_buffer;
+    ESP_LOGI("HTTP_CLIENT", "Email fetched: %s", email);
 
-    //     // Assign value buffer to values array
-    //     values[i] = value_buffer;
-    // }
+    // nvs_get_email(email);
 
-    // // Call post_json_data function with keys, values, and number of pairs
-    // Http_status status = post_json_data(keys, values, sizeof(keys) / sizeof(keys[0]));
+    // Convert structure fields to strings and store in values array
+    for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
+    {
+        char *value_buffer = (char *)malloc(20 * sizeof(char)); // Adjust the buffer size as needed
+        if (value_buffer == NULL)
+        {
+            printf("Error: Failed to allocate memory for value %zu\n", i);
+            // Free previously allocated memory
+            for (size_t j = 0; j < i; j++)
+            {
+                free((void *)values[j]);
+            }
+            free(values);
+            return 0; // Or any appropriate error status
+        }
 
-    // // Free dynamically allocated memory
-    // for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
-    // {
-    //     free((void *)values[i]);
-    // }
-    // free(values);
+        // Convert structure field to string
+        switch (i)
+        {
+        case 0:
+            sprintf(value_buffer, "%llu", controle_gear->manufacturer_id);
+            break;
+        case 1:
+            sprintf(value_buffer, "%lu", controle_gear->operating_time);
+            break;
+        case 2:
+            sprintf(value_buffer, "%lu", controle_gear->start_counter);
+            break;
+        case 3:
+            sprintf(value_buffer, "%u", controle_gear->external_supply_voltage);
+            break;
+        case 4:
+            sprintf(value_buffer, "%u", controle_gear->external_supply_voltage_frequency);
+            break;
+        case 5:
+            sprintf(value_buffer, "%u", controle_gear->power_factor);
+            break;
+        case 6:
+            sprintf(value_buffer, "%u", controle_gear->overall_faliure_condition);
+            break;
+        case 7:
+            sprintf(value_buffer, "%u", controle_gear->external_supply_undervoltage);
+            break;
+        case 8:
+            sprintf(value_buffer, "%u", controle_gear->external_supply_undervoltage_counter);
+            break;
+        case 9:
+            sprintf(value_buffer, "%u", controle_gear->external_supply_overvoltage);
+            break;
+        case 10:
+            sprintf(value_buffer, "%u", controle_gear->external_supply_overvoltage_counter);
+            break;
+        case 11:
+            sprintf(value_buffer, "%u", controle_gear->output_power_limitation);
+            break;
+        case 12:
+            sprintf(value_buffer, "%u", controle_gear->output_power_limitation_counter);
+            break;
+        case 13:
+            sprintf(value_buffer, "%u", controle_gear->thermal_derating);
+            break;
+        case 14:
+            sprintf(value_buffer, "%u", controle_gear->thermal_derating_counter);
+            break;
+        case 15:
+            sprintf(value_buffer, "%u", controle_gear->thermal_shutdown);
+            break;
+        case 16:
+            sprintf(value_buffer, "%u", controle_gear->thermal_shutdown_counter);
+            break;
+        case 17:
+            sprintf(value_buffer, "%u", controle_gear->temperature);
+            break;
+        case 18:
+            sprintf(value_buffer, "%u", controle_gear->output_current_percent);
+            break;
+        case 19:
+            sprintf(value_buffer, "%lu", controle_gear->light_source_start_counter_resettable);
+            break;
+        case 20:
+            sprintf(value_buffer, "%lu", controle_gear->light_source_start_counter);
+            break;
+        case 21:
+            sprintf(value_buffer, "%lu", controle_gear->light_source_on_time_resettable);
+            break;
+        case 22:
+            sprintf(value_buffer, "%lu", controle_gear->light_source_on_time);
+            break;
+        case 23:
+            sprintf(value_buffer, "%u", controle_gear->light_source_voltage);
+            break;
+        case 24:
+            sprintf(value_buffer, "%u", controle_gear->light_source_current);
+            break;
+        case 25:
+            sprintf(value_buffer, "%u", controle_gear->light_source_overall_faliure_condition);
+            break;
+        case 26:
+            sprintf(value_buffer, "%u", controle_gear->light_source_overall_faliure_condition_counter);
+            break;
+        case 27:
+            sprintf(value_buffer, "%u", controle_gear->light_source_short_circuit);
+            break;
+        case 28:
+            sprintf(value_buffer, "%u", controle_gear->light_source_short_circuit_counter);
+            break;
+        case 29:
+            sprintf(value_buffer, "%u", controle_gear->light_source_open_circuit);
+            break;
+        case 30:
+            sprintf(value_buffer, "%u", controle_gear->light_source_open_circuit_counter);
+            break;
+        case 31:
+            sprintf(value_buffer, "%u", controle_gear->light_source_thermal_derating);
+            break;
+        case 32:
+            sprintf(value_buffer, "%u", controle_gear->light_source_thermal_derating_counter);
+            break;
+        case 33:
+            sprintf(value_buffer, "%u", controle_gear->light_source_thermal_shutdown);
+            break;
+        case 34:
+            sprintf(value_buffer, "%u", controle_gear->light_source_thermal_shutdown_counter);
+            break;
+        case 35:
+            sprintf(value_buffer, "%u", controle_gear->light_source_temperature);
+            break;
+        case 36:
+            sprintf(value_buffer, "%u", controle_gear->rated_median_usefull_life_of_luminare);
+            break;
+        case 37:
+            sprintf(value_buffer, "%u", controle_gear->internal_controle_gear_reference_temperature);
+            break;
+        case 38:
+            sprintf(value_buffer, "%u", controle_gear->rated_median_usefull_light_source_starts);
+            break;
+        case 39:
+            // Allocate memory for value_buffer
+            value_buffer = (char *)malloc((strlen(email) + 1) * sizeof(char));
+            if (value_buffer == NULL)
+            {
+                printf("Error: Failed to allocate memory for value buffer\n");
+                return 0; // Or any appropriate error status
+            }
+            // Copy the email into value_buffer
+            strcpy(value_buffer, email);
+            break;
+        }
 
-    // return status;
-    return 0;
+        // Assign value buffer to values array
+        values[i] = value_buffer;
+    }
+
+    // Call post_json_data function with keys, values, and number of pairs
+    Http_status status = post_json_data(keys, values, sizeof(keys) / sizeof(keys[0]));
+
+    // Free dynamically allocated memory
+    for (size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
+    {
+        free((void *)values[i]);
+    }
+    free(values);
+
+    return status;
+    // return 0;
 }
