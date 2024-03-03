@@ -81,13 +81,13 @@ void nvs_write_uint8(const char *key, uint8_t value);
 void nvs_write_uint64(const char *key, uint64_t value);
 uint8_t nvs_read_uint8(const char *key);
 uint64_t nvs_read_uint64(const char *key);
-void nvs_delete_key_value_pair(const char *key);
+void nvs_delete_key_value_pair(char *namespace, const char *key);
 
 // Special functions with desinated namespaces
 void nvs_write_manufactoring_id(const char *key, uint64_t value);
 uint64_t nvs_read_manufactoring_id(const char *key);
 char *nvs_read_all_manufactoring_ids(void);
-bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count);
+bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count, uint64_t *manufactoring_ids);
 bool nvs_set_token(char *token, size_t token_len);
 bool nvs_get_token(char *token);
 bool nvs_set_email(char *email, size_t email_len);

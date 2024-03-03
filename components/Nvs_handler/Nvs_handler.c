@@ -110,7 +110,7 @@ bool nvs_get_string(char *namespace, const char *key, char *return_value)
     return true;
 }
 
-bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count)
+bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count, uint64_t *manufactoring_ids)
 {
     nvs_handle_t my_handle;
     esp_err_t err = nvs_open("manu_id", NVS_READWRITE, &my_handle);
@@ -147,6 +147,7 @@ bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count)
                 nvs_close(my_handle);
                 return false;
             }
+            manufactoring_ids[i] = manu_id;
         }
         // Commit changes
         nvs_commit(my_handle);
@@ -320,10 +321,10 @@ uint64_t nvs_read_uint64(const char *key)
     return value;
 }
 
-void nvs_delete_key_value_pair(const char *key)
+void nvs_delete_key_value_pair(char *namespace, const char *key)
 {
     nvs_handle_t my_handle;
-    esp_err_t err = nvs_open("storage", NVS_READWRITE, &my_handle);
+    esp_err_t err = nvs_open(namespace, NVS_READWRITE, &my_handle);
     if (err != ESP_OK)
     {
         ESP_LOGE("nvs_delete_key_value_pair", "Error (%s) opening NVS handle!\n", esp_err_to_name(err));

@@ -32,10 +32,13 @@
 
 void process_DALI_response(DALI_Status response);
 
+Device_t devices_on_bus[64];
+
 static const char *TAG = "app_main";
 
 uint8_t short_addresses_on_bus_count = 0;
 uint8_t short_addresses_on_bus[64];
+uint64_t manufactoring_ids_on_bus[64];
 
 uint8_t uncommissioned_devices_on_bus_count = 0;
 address24_t uncommissioned_devices_on_bus_addresses[64];
@@ -72,6 +75,12 @@ void app_main(void)
         case NVS_INIT_STATE:
             init_nvs_handler();
             ESP_LOGI(TAG, "NVS initialized");
+            // Remove for production
+
+            char *access_token_namespace = "authentication";
+            const char *key = "refresh_token";
+            nvs_delete_key_value_pair(access_token_namespace, key);
+            // Until here
             set_state(AWAIT_WIFI_PROVISIONING_STATE);
             break;
 
@@ -131,7 +140,11 @@ void app_main(void)
 
         case SYNCRONIZE_NVS_STATE:
             ESP_LOGI(TAG, "Synchronizing NVS");
-            nvs_synchronize(short_addresses_on_bus, short_addresses_on_bus_count);
+            nvs_synchronize(short_addresses_on_bus, short_addresses_on_bus_count, manufactoring_ids_on_bus);
+            for (size_t i = 0; i < short_addresses_on_bus_count; i++)
+            {
+                printf("Manufactoring id %d: %llu\n", i + 1, manufactoring_ids_on_bus[i]);
+            }
             set_state(AUTHENTICATION_STATE);
             break;
 
@@ -175,6 +188,8 @@ void app_main(void)
 
         case DALI_BUS_CORRUPTED_STATE:
             ESP_LOGE(TAG, "DALI bus corrupted");
+            short_addresses_on_bus_count = 0;
+            uncommissioned_devices_on_bus_count = 0;
             if (error_counter < 3)
             {
                 error_counter++;

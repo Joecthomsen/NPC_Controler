@@ -196,44 +196,120 @@ void message_handler(char *rx_buffer, int len, int socket)
         uint16_t manu_id_len = strlen(manu_id);
         send(socket, manu_id, manu_id_len, 0);
     }
-    else if (strncmp(rx_buffer, "SET_TOKEN", strlen("SET_TOKEN")) == 0)
+
+    else if (strncmp(rx_buffer, "SET_REFRESH_TOKEN", strlen("SET_REFRESH_TOKEN")) == 0)
     {
-        // Skip "SET_TOKEN" command to get the token
-        char *token_start = rx_buffer + strlen("SET_TOKEN") + 1; // Plus one for the whitespace after the command
+        // Skip "SET_REFRESH_TOKEN" command to get the tokens
+        char *tokens_start = rx_buffer + strlen("SET_REFRESH_TOKEN") + 1; // Plus one for the whitespace after the command
 
-        // Find the end of the token
-        char *token_end = strchr(token_start, '\0');
+        // Find the end of the tokens
+        char *token_end = strchr(tokens_start, ' ');
 
-        // Calculate the length of the token
-        uint16_t token_len = token_end - token_start;
-
-        // Ensure the token length is within bounds
-        if (token_len > 0)
+        if (token_end != NULL)
         {
-            // Call nvs_set_token function with the token and its length
-            bool result = nvs_set_string("authentication", "token", token_start); // nvs_set_token(token_start, token_len);
+            // First token
+            *token_end = '\0'; // Null-terminate the first token
+            char *first_token = tokens_start;
 
-            // Check if setting the token was successful
-            if (result)
+            // Move to the next character after the whitespace
+            tokens_start = token_end + 1;
+
+            // Find the end of the second token
+            token_end = strchr(tokens_start, '\0');
+
+            if (token_end != NULL)
             {
-                // If successful, send a success response
-                const char *success_msg = "Token set successfully";
-                send(socket, success_msg, strlen(success_msg), 0);
+                // Second token
+                char *second_token = tokens_start;
+
+                // Calculate the lengths of the tokens
+                uint16_t first_token_len = strlen(first_token);
+                uint16_t second_token_len = token_end - second_token;
+
+                // Ensure both token lengths are within bounds
+                if (first_token_len > 0 && second_token_len > 0)
+                {
+                    // Call nvs_set_token function with the tokens and their lengths
+                    bool result = nvs_set_string("authentication", first_token, second_token);
+                    // result &= nvs_set_string("authentication", "refresh_token", second_token);
+                    ESP_LOGI(TAG, "Token 1: %s", first_token);
+                    ESP_LOGI(TAG, "Token 2: %s", second_token);
+
+                    // Check if setting the tokens was successful
+                    if (result)
+                    {
+                        // If successful, send a success response
+                        const char *success_msg = "Tokens set successfully";
+                        send(socket, success_msg, strlen(success_msg), 0);
+                    }
+                    else
+                    {
+                        // If unsuccessful, send an error response
+                        const char *error_msg = "Failed to set tokens";
+                        send(socket, error_msg, strlen(error_msg), 0);
+                    }
+                }
+                else
+                {
+                    // Handle case where one or both tokens are empty
+                    const char *error_msg = "Invalid tokens provided";
+                    send(socket, error_msg, strlen(error_msg), 0);
+                }
             }
             else
             {
-                // If unsuccessful, send an error response
-                const char *error_msg = "Failed to set token";
+                // Handle case where only one token is provided
+                const char *error_msg = "Second token missing";
                 send(socket, error_msg, strlen(error_msg), 0);
             }
         }
         else
         {
-            // Handle case where no token is found
-            // Perhaps send an appropriate response or log a warning
+            // Handle case where no tokens are found
+            const char *error_msg = "Tokens missing";
+            send(socket, error_msg, strlen(error_msg), 0);
         }
     }
-    else if (strcmp(rx_buffer, "GET_TOKEN") == 0)
+
+    // else if (strncmp(rx_buffer, "SET_REFRESH_TOKEN", strlen("SET_REFRESH_TOKEN")) == 0)
+    // {
+    //     // Skip "SET_TOKEN" command to get the token
+    //     char *token_start = rx_buffer + strlen("SET_REFRESH_TOKEN") + 1; // Plus one for the whitespace after the command
+
+    //     // Find the end of the token
+    //     char *token_end = strchr(token_start, '\0');
+
+    //     // Calculate the length of the token
+    //     uint16_t token_len = token_end - token_start;
+
+    //     // Ensure the token length is within bounds
+    //     if (token_len > 0)
+    //     {
+    //         // Call nvs_set_token function with the token and its length
+    //         bool result = nvs_set_string("authentication", "token", token_start); // nvs_set_token(token_start, token_len);
+
+    //         // Check if setting the token was successful
+    //         if (result)
+    //         {
+    //             // If successful, send a success response
+    //             const char *success_msg = "Token set successfully";
+    //             send(socket, success_msg, strlen(success_msg), 0);
+    //         }
+    //         else
+    //         {
+    //             // If unsuccessful, send an error response
+    //             const char *error_msg = "Failed to set token";
+    //             send(socket, error_msg, strlen(error_msg), 0);
+    //         }
+    //     }
+    //     else
+    //     {
+    //         // Handle case where no token is found
+    //         // Perhaps send an appropriate response or log a warning
+    //     }
+    // }
+
+    else if (strcmp(rx_buffer, "GET_REFRESH_TOKEN") == 0)
     {
         char token[512];
         // nvs_get_token(token);
