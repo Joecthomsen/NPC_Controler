@@ -31,6 +31,7 @@ typedef enum State_t
     ANALYZE_DALI_BUS_STATE,
     TCP_SERVER_INIT_STATE,
     MDNS_INIT_STATE,
+    AUTHENTICATION_STATE,
     SYSTEM_RUNNING_STATE,
 
     // Error states

@@ -103,14 +103,14 @@ bool nvs_get_string(char *namespace, const char *key, char *return_value)
     err = nvs_get_str(my_handle, key, return_value, &len);
     if (err != ESP_OK)
     {
-        ESP_LOGE("nvs_set_token", "Error (%s) storing token in NVS", esp_err_to_name(err));
+        ESP_LOGE("nvs_set_token", "Error (%s) reading token from NVS", esp_err_to_name(err));
         nvs_close(my_handle);
         return false;
     }
     return true;
 }
 
-bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count)
+bool nvs_synchronize(Device_t devices_on_bus[64], uint8_t short_addresses_count)
 {
     nvs_handle_t my_handle;
     esp_err_t err = nvs_open("manu_id", NVS_READWRITE, &my_handle);
@@ -139,7 +139,7 @@ bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count)
             // uint64_t manu_id = read_ma(short_addresses[i]);
             char key[10]; // Assuming maximum 10 characters for numeric key representation
             sprintf(key, "%d", i);
-            uint64_t manu_id = read_manufactor_id(short_addresses[i]);
+            uint64_t manu_id = read_manufactor_id(devices_on_bus[i].short_address);
             err = nvs_set_u64(my_handle, key, manu_id);
             if (err != ESP_OK)
             {
@@ -147,6 +147,8 @@ bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count)
                 nvs_close(my_handle);
                 return false;
             }
+            devices_on_bus[i].manufactoring_id = manu_id;
+            // manufactoring_ids[i] = manu_id;
         }
         // Commit changes
         nvs_commit(my_handle);
@@ -191,10 +193,11 @@ bool nvs_synchronize(uint8_t *short_addresses, uint8_t short_addresses_count)
                 // Value found, compare with bus
                 for (size_t j = 0; j < short_addresses_count; j++)
                 {
-                    if (value == read_manufactor_id(short_addresses[j]))
+                    if (value == read_manufactor_id(devices_on_bus[j].short_address))
                     {
                         ESP_LOGI(TAG, "Manufacturing ID at index %d matches ID on the bus.", i);
                         sync_needed = false;
+                        devices_on_bus[i].manufactoring_id = value;
                         break;
                     }
                 }
@@ -320,10 +323,10 @@ uint64_t nvs_read_uint64(const char *key)
     return value;
 }
 
-void nvs_delete_key_value_pair(const char *key)
+void nvs_delete_key_value_pair(char *namespace, const char *key)
 {
     nvs_handle_t my_handle;
-    esp_err_t err = nvs_open("storage", NVS_READWRITE, &my_handle);
+    esp_err_t err = nvs_open(namespace, NVS_READWRITE, &my_handle);
     if (err != ESP_OK)
     {
         ESP_LOGE("nvs_delete_key_value_pair", "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
@@ -409,15 +412,15 @@ char *nvs_read_all_manufactoring_ids()
 
     // Read all manufacturing IDs
     uint64_t value;
-    char key[32];                                          // Adjust the size as needed
-    for (int i = 0; i < short_addresses_on_bus_count; i++) // Adjust MAX_MANUFACTURING_IDS as needed
+    char key[32];                                  // Adjust the size as needed
+    for (int i = 0; i < devices_on_bus_count; i++) // Adjust MAX_MANUFACTURING_IDS as needed
     {
         snprintf(key, sizeof(key), "%d", i);
         value = nvs_read_manufactoring_id(key);
         if (value != 0) // Assuming 0 is not a valid manufacturing ID
         {
             // Append the ID to the CSV buffer
-            int bytes_written = snprintf(csv_buffer + strlen(csv_buffer), csv_buffer_size - strlen(csv_buffer), "%llu,", value);
+            int bytes_written = snprintf(csv_buffer + strlen(csv_buffer), csv_buffer_size - strlen(csv_buffer), "%s:%llu,", key, value);
             if (bytes_written < 0 || bytes_written >= csv_buffer_size - strlen(csv_buffer))
             {
                 // Error handling for buffer overflow
@@ -439,4 +442,49 @@ char *nvs_read_all_manufactoring_ids()
     }
 
     return csv_buffer;
+}
+
+bool authenticated(Device_t devices_on_bus[64], uint16_t devices_on_bus_count)
+{
+    bool returnValue = false;
+    nvs_handle_t my_handle;
+    esp_err_t err = nvs_open("authentication", NVS_READWRITE, &my_handle);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE("authenticated", "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+        return false;
+    }
+    else
+    {
+        for (int i = 0; i < devices_on_bus_count; i++)
+        {
+            size_t token_len = 0;
+            char key[4];
+            sprintf(key, "%hhu", devices_on_bus[i].short_address);
+            err = nvs_get_str(my_handle, key, NULL, &token_len);
+
+            if (err == ESP_ERR_NVS_NOT_FOUND)
+            {
+                ESP_LOGI("authenticated", "No refresh key: %s. (ESP_ERR_NVS_NOT_FOUND)", key);
+                return false;
+            }
+            else if (err != ESP_OK)
+            {
+                ESP_LOGE("authenticated", "Error reading refresh token! (%s)\n", esp_err_to_name(err));
+                return false;
+            }
+            else
+            {
+                ESP_LOGI("authenticated", "Refresh key: %s", key);
+            }
+            // else
+            // {
+            //     return false;
+            //     // returnValue = (err == ESP_OK); // If refresh token exists, return true
+            // }
+        }
+
+        nvs_close(my_handle);
+    }
+    return true;
 }
