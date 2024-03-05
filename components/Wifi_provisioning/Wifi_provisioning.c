@@ -6,6 +6,7 @@
 #include <wifi_provisioning/manager.h>
 #include <wifi_provisioning/scheme_softap.h>
 // #include "qrcode.h"
+#include "../../../managed_components/espressif__qrcode/include/qrcode.h"
 #include "esp_log.h"
 #include <string.h>
 #include "State_manager.h"
@@ -218,9 +219,9 @@ static void wifi_prov_print_qr(const char *name, const char *username, const cha
     }
 
     // SKAL FIXES
-    //  ESP_LOGI(TAG, "Scan this QR code from the provisioning application for Provisioning.");
-    //  esp_qrcode_config_t cfg = ESP_QRCODE_CONFIG_DEFAULT();
-    //  esp_qrcode_generate(&cfg, payload);
+    ESP_LOGI(TAG, "Scan this QR code from the provisioning application for Provisioning.");
+    esp_qrcode_config_t cfg = ESP_QRCODE_CONFIG_DEFAULT();
+    esp_qrcode_generate(&cfg, payload);
     ESP_LOGI(TAG, "If QR code is not visible, copy paste the below URL in a browser.\n%s?data=%s", QRCODE_BASE_URL, payload);
 }
 
