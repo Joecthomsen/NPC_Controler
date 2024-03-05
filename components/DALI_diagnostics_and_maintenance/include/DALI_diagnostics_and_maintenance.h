@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdint.h>
 
 // Memory bank 205 addresses
@@ -75,6 +77,7 @@ typedef struct Controle_gear_values_t
 {
     // Memory bank 205
     uint64_t manufacturer_id;
+    uint8_t short_address;
     uint32_t operating_time;
     bit24_t start_counter;
     uint16_t external_supply_voltage;

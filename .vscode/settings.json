@@ -76,7 +76,14 @@
         "sockets.h": "c",
         "api.h": "c",
         "nvs_handler.h": "c",
-        "constants.h": "c"
+        "constants.h": "c",
+        "mdns_handler.h": "c",
+        "input_button.h": "c",
+        "stdio.h": "c",
+        "manager.h": "c",
+        "esp_err.h": "c",
+        "dali_memory_bank_handler.h": "c"
     },
-    "idf.flashType": "UART"
+    "idf.flashType": "UART",
+    "C_Cpp.default.compilerPath": "/usr/bin/gcc"
 }

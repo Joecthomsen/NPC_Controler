@@ -12,7 +12,6 @@ DALI_Status read_2_bytes(uint8_t short_address, uint16_t *return_value, uint8_t 
 DALI_Status read_3_bytes(uint8_t short_address, bit24_t *return_value, uint8_t memory_bank, uint8_t start_address);
 DALI_Status read_4_bytes(uint8_t short_address, uint32_t *return_value, uint8_t memory_bank, uint8_t start_address);
 uint8_t calculate_short_address_standard_cmd(uint8_t short_address);
-uint64_t read_manufactor_id(uint8_t short_address);
 
 /**
  * @brief Fetch diagnostics data from a DALI control gear
@@ -37,6 +36,7 @@ Controle_gear_values_t fetch_controle_gear_data(uint8_t short_address)
     write_memory_location(short_address, MEMORY_BANK_205, LOCK_BYTE, 0x55);
 
     controle_gear.manufacturer_id = read_manufactor_id(short_address); // TODO implement error handling/logging
+    controle_gear.short_address = short_address;
 
     // Fetch memory bank 205
 

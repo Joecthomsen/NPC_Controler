@@ -28,13 +28,18 @@
 #include "Nvs_handler.h"
 #include "constants.h"
 #include "Input_button.h"
+#include "Http_handler.h"
+#include "device.h"
 
 void process_DALI_response(DALI_Status response);
 
+Device_t devices_on_bus[64];
+
 static const char *TAG = "app_main";
 
-uint8_t short_addresses_on_bus_count = 0;
-uint8_t short_addresses_on_bus[64];
+uint8_t devices_on_bus_count = 0;
+// uint8_t short_addresses_on_bus[64];
+// uint64_t manufactoring_ids_on_bus[64];
 
 uint8_t uncommissioned_devices_on_bus_count = 0;
 address24_t uncommissioned_devices_on_bus_addresses[64];
@@ -71,6 +76,15 @@ void app_main(void)
         case NVS_INIT_STATE:
             init_nvs_handler();
             ESP_LOGI(TAG, "NVS initialized");
+            // Remove for production
+
+            char *access_token_namespace = "authentication";
+            const char *key = "refresh_token";
+            nvs_delete_key_value_pair(access_token_namespace, key);
+            // nvs_delete_key_value_pair("authentication", "0");
+            // nvs_delete_key_value_pair("authentication", "1");
+
+            // Until here
             set_state(AWAIT_WIFI_PROVISIONING_STATE);
             break;
 
@@ -87,7 +101,7 @@ void app_main(void)
             break;
 
         case TCP_SERVER_INIT_STATE:
-            xTaskCreate(tcp_server_task, "tcp_server", 2048, NULL, 5, NULL);
+            xTaskCreate(tcp_server_task, "tcp_server", 4096, NULL, 5, NULL);
             ESP_LOGI(TAG, "TCP server initialized");
             set_state(MDNS_INIT_STATE);
             break;
@@ -100,13 +114,13 @@ void app_main(void)
 
         case ANALYZE_DALI_BUS_STATE:
             ESP_LOGI(TAG, "Analyzing DALI bus");
-            DALI_Status check = check_drivers_commissioned(&short_addresses_on_bus_count, short_addresses_on_bus, &uncommissioned_devices_on_bus_count, uncommissioned_devices_on_bus_addresses);
-            ESP_LOGI(TAG, "Short addresses on bus: %u", short_addresses_on_bus_count);
+            DALI_Status check = check_drivers_commissioned(devices_on_bus, &devices_on_bus_count, &uncommissioned_devices_on_bus_count, uncommissioned_devices_on_bus_addresses);
+            ESP_LOGI(TAG, "Short addresses on bus: %u", devices_on_bus_count);
             ESP_LOGI(TAG, "Uncommissioned devices on bus: %u", uncommissioned_devices_on_bus_count);
-            for (uint8_t i = 0; i < short_addresses_on_bus_count; i++)
-            {
-                ESP_LOGI(TAG, "Short address on bus: %u", short_addresses_on_bus[i]);
-            }
+            // for (uint8_t i = 0; i < devices_on_bus_count; i++)
+            // {
+            //     ESP_LOGI(TAG, "Short address on bus: %u", short_addresses_on_bus[i]);
+            // }
             for (uint8_t i = 0; i < uncommissioned_devices_on_bus_count; i++)
             {
                 ESP_LOGI(TAG, "Uncommissioned device on bus: %lu", uncommissioned_devices_on_bus_addresses[i]);
@@ -114,36 +128,58 @@ void app_main(void)
             process_DALI_response(check); // Assert if OK or some ERROR and set state.
             break;
 
-        case DALI_COMMISION_BUS_STATE:
+        case DALI_COMMISION_BUS_STATE: // Ensure that this state is working
             ESP_LOGI(TAG, "Commissioning DALI bus");
-            short_addresses_on_bus_count = commission_bus();
-            for (size_t i = 0; i < short_addresses_on_bus_count; i++)
+            devices_on_bus_count = commission_bus();
+            for (size_t i = 0; i < devices_on_bus_count; i++)
             {
-                short_addresses_on_bus[i] = i;
+                devices_on_bus[i].short_address = i; // short_addresses_on_bus[i] = i;
             }
             set_state(ANALYZE_DALI_BUS_STATE);
             break;
 
-        case BLINK_LAMP_STATE:
-            ESP_LOGI(TAG, "Blinking lamp");
-            uint16_t cmd_turn_on = 0xFEFE; // Turn all lamps on //(selected_driver << 9) | 0xFE;
-            uint16_t cmd_turn_off = selected_driver << 9;
-            send_DALI_Tx(cmd_turn_off);
-            vTaskDelay(500 / portTICK_PERIOD_MS);
-            send_DALI_Tx(cmd_turn_on);
-            vTaskDelay(500 / portTICK_PERIOD_MS);
+        case DALI_COMMUNICATION_OK_STATE:
+            set_state(SYNCRONIZE_NVS_STATE);
             break;
 
-        case DALI_COMMUNICATION_OK_STATE:
-            set_state(SYSTEM_RUNNING_STATE);
+        case SYNCRONIZE_NVS_STATE:
+            ESP_LOGI(TAG, "Synchronizing NVS");
+            nvs_synchronize(devices_on_bus, devices_on_bus_count);
+            for (size_t i = 0; i < devices_on_bus_count; i++)
+            {
+                ESP_LOGI(TAG, "struct short address %d manufactoringID: %llu", devices_on_bus[i].short_address, devices_on_bus[i].manufactoring_id);
+                // printf("Manufactoring id %d: %llu\n", i + 1, manufactoring_ids_on_bus[i]);
+            }
+            set_state(AUTHENTICATION_STATE);
+            break;
+
+        case AUTHENTICATION_STATE:
+            ESP_LOGI(TAG, "System authentication");
+            while (1)
+            {
+                if (authenticated(devices_on_bus, devices_on_bus_count))
+                {
+                    ESP_LOGI(TAG, "System authenticated");
+                    set_state(SYSTEM_RUNNING_STATE);
+                    break;
+                }
+                else
+                {
+                    ESP_LOGI(TAG, "System not authenticated");
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
+                }
+            }
+
             break;
 
         case SYSTEM_RUNNING_STATE:
             ESP_LOGI(TAG, "System running");
-            for (size_t i = 0; i < short_addresses_on_bus_count; i++)
+            for (size_t i = 0; i < devices_on_bus_count; i++)
             {
-                Controle_gear_values_t controle_gear = fetch_controle_gear_data(short_addresses_on_bus[i]);
-                printObject(controle_gear);
+                Controle_gear_values_t controle_gear = fetch_controle_gear_data(devices_on_bus[i].short_address);
+                post_controle_gear_data(&controle_gear);
+                // printObject(controle_gear);
+                //   printf("\n*****************************************************************************\n");
             }
             const EventBits_t tcpEventBits = xEventGroupWaitBits(tcpEventGroup, TCP_EVENT_BIT, pdTRUE, pdFALSE, ONE_HOUR);
             break;
@@ -157,6 +193,8 @@ void app_main(void)
 
         case DALI_BUS_CORRUPTED_STATE:
             ESP_LOGE(TAG, "DALI bus corrupted");
+            devices_on_bus_count = 0;
+            uncommissioned_devices_on_bus_count = 0;
             if (error_counter < 3)
             {
                 error_counter++;
@@ -194,6 +232,18 @@ void app_main(void)
                 send_tcp_message("{\"status\":\"No response on DALI bus\"}");
                 error_counter = 0;
             }
+            break;
+
+            // ****************************   Other states    ****************************
+
+        case BLINK_LAMP_STATE:
+            ESP_LOGI(TAG, "Blinking lamp");
+            uint16_t cmd_turn_on = 0xFEFE; // Turn all lamps on //(selected_driver << 9) | 0xFE;
+            uint16_t cmd_turn_off = selected_driver << 9;
+            send_DALI_Tx(cmd_turn_off);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
+            send_DALI_Tx(cmd_turn_on);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
         default:
