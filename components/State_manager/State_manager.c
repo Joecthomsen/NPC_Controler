@@ -20,6 +20,15 @@ void state_task(void *parameter)
             vTaskDelay(100 / portTICK_PERIOD_MS);
             break;
 
+        case INIT_POP_STATE:
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, HIGH);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, LOW);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            break;
+
         case WIFI_PROVISIONING_STATE:
             gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, HIGH);
             vTaskDelay(100 / portTICK_PERIOD_MS);

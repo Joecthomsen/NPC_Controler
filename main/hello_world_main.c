@@ -38,9 +38,6 @@ Device_t devices_on_bus[64];
 static const char *TAG = "app_main";
 
 uint8_t devices_on_bus_count = 0;
-// uint8_t short_addresses_on_bus[64];
-// uint64_t manufactoring_ids_on_bus[64];
-
 uint8_t uncommissioned_devices_on_bus_count = 0;
 address24_t uncommissioned_devices_on_bus_addresses[64];
 
@@ -49,6 +46,8 @@ bool await_user_action = false;
 EventGroupHandle_t tcpEventGroup;
 
 uint8_t selected_driver = 0;
+
+char popID[10];
 
 void taskOne(void *parameter)
 {
@@ -85,6 +84,11 @@ void app_main(void)
             // nvs_delete_key_value_pair("authentication", "1");
 
             // Until here
+            set_state(INIT_POP_STATE);
+            break;
+
+        case INIT_POP_STATE:
+            strcpy(popID, "abcd1234");
             set_state(AWAIT_WIFI_PROVISIONING_STATE);
             break;
 
@@ -107,7 +111,7 @@ void app_main(void)
             break;
 
         case MDNS_INIT_STATE:
-            mDNS_init();
+            mDNS_init(popID);
             ESP_LOGI(TAG, "mDNS initialized");
             set_state(ANALYZE_DALI_BUS_STATE);
             break;
