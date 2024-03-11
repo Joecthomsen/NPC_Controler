@@ -225,7 +225,7 @@ static void wifi_prov_print_qr(const char *name, const char *username, const cha
     ESP_LOGI(TAG, "If QR code is not visible, copy paste the below URL in a browser.\n%s?data=%s", QRCODE_BASE_URL, payload);
 }
 
-void init_wifi_provisioning(void)
+void init_wifi_provisioning(char popID[10])
 {
     /* Initialize TCP/IP */
     ESP_ERROR_CHECK(esp_netif_init());
@@ -300,7 +300,7 @@ void init_wifi_provisioning(void)
          *      - this should be a string with length > 0
          *      - NULL if not used
          */
-        const char *pop = "abcd1234";
+        const char *pop = popID; //"abcd1234";
 
         /* This is the structure for passing security parameters
          * for the protocomm security 1.

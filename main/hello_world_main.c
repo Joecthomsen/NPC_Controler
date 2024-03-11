@@ -46,8 +46,10 @@ bool await_user_action = false;
 EventGroupHandle_t tcpEventGroup;
 
 uint8_t selected_driver = 0;
-
 char popID[10];
+
+char error_message[128];
+bool error_message_send = false;
 
 void taskOne(void *parameter)
 {
@@ -93,7 +95,7 @@ void app_main(void)
             break;
 
         case AWAIT_WIFI_PROVISIONING_STATE:
-            init_wifi_provisioning();
+            init_wifi_provisioning(popID);
             ESP_LOGI(TAG, "Wifi provisioning initialized");
             set_state(DALI_COMMUNICATION_INIT_STATE);
             break;
@@ -217,7 +219,8 @@ void app_main(void)
             ESP_LOGE(TAG, "DALI bus not commissioned");
             if (await_user_action)
             {
-                send_tcp_message("{\"status\":\"DALI bus not commissioned\"}");
+                sprintf(error_message, "{\"status\":\"DALI bus not commissioned\", \"popID\":\"%s\"}", popID);
+                send_tcp_message(error_message);
                 await_user_action = true;
             }
             break;
@@ -231,9 +234,10 @@ void app_main(void)
                 set_state(ANALYZE_DALI_BUS_STATE);
                 error_counter++;
             }
-            else
+            else if (!error_message_send)
             {
-                send_tcp_message("{\"status\":\"No response on DALI bus\"}");
+                sprintf(error_message, "{\"status\":\"No response on DALI bus\", \"popID\":\"%s\"}", popID);
+                send_tcp_message(error_message);
                 error_counter = 0;
             }
             break;
