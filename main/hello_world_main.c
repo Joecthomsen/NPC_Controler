@@ -229,7 +229,6 @@ void app_main(void)
             ESP_LOGE(TAG, "No response on DALI bus");
             if (error_counter < 3)
             {
-                vTaskDelay(3000 / portTICK_PERIOD_MS);
                 ESP_LOGI(TAG, "Trying to re-analyze DALI bus");
                 set_state(ANALYZE_DALI_BUS_STATE);
                 error_counter++;
@@ -240,6 +239,11 @@ void app_main(void)
                 send_tcp_message(error_message);
                 error_counter = 0;
             }
+            else
+            {
+                error_counter = 0;
+            }
+            vTaskDelay(3000 / portTICK_PERIOD_MS);
             break;
 
             // ****************************   Other states    ****************************

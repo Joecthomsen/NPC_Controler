@@ -393,6 +393,10 @@ void message_handler(char *rx_buffer, int len, int socket)
         uint16_t refresh_token_len = strlen(refresh_token);
         send(socket, refresh_token, refresh_token_len, 0);
     }
+    else if (strcmp(rx_buffer, "ERROR_MESSAGES_READ") == 0)
+    {
+        error_message_send = true;
+    }
 }
 
 void send_tcp_message(char *message)
