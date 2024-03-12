@@ -161,21 +161,17 @@ void app_main(void)
 
         case AUTHENTICATION_STATE:
             ESP_LOGI(TAG, "System authentication");
-            while (1)
+            if (authenticated(devices_on_bus, devices_on_bus_count))
             {
-                if (authenticated(devices_on_bus, devices_on_bus_count))
-                {
-                    ESP_LOGI(TAG, "System authenticated");
-                    set_state(SYSTEM_RUNNING_STATE);
-                    break;
-                }
-                else
-                {
-                    ESP_LOGI(TAG, "System not authenticated");
-                    vTaskDelay(3000 / portTICK_PERIOD_MS);
-                }
+                ESP_LOGI(TAG, "System authenticated");
+                set_state(SYSTEM_RUNNING_STATE);
+                break;
             }
-
+            else
+            {
+                set_state(NOT_AUTHENTICATED_STATE);
+                vTaskDelay(3000 / portTICK_PERIOD_MS);
+            }
             break;
 
         case SYSTEM_RUNNING_STATE:
@@ -210,7 +206,8 @@ void app_main(void)
             }
             else
             {
-                send_tcp_message("{\"status\":\"DALI bus corrupted\"}");
+                // sprintf(error_message, "{\"message\":\"DALI bus corrupted\", \"popID\":\"%s\"}", popID);
+                // send_tcp_message(error_message);
                 error_counter = 0;
             }
             break;
@@ -219,8 +216,8 @@ void app_main(void)
             ESP_LOGE(TAG, "DALI bus not commissioned");
             if (await_user_action)
             {
-                sprintf(error_message, "{\"status\":\"DALI bus not commissioned\", \"popID\":\"%s\"}", popID);
-                send_tcp_message(error_message);
+                // sprintf(error_message, "{\"message\":\"DALI bus not commissioned\", \"popID\":\"%s\"}", popID);
+                // send_tcp_message(error_message);
                 await_user_action = true;
             }
             break;
@@ -235,13 +232,23 @@ void app_main(void)
             }
             else if (!error_message_send)
             {
-                sprintf(error_message, "{\"status\":\"No response on DALI bus\", \"popID\":\"%s\"}", popID);
-                send_tcp_message(error_message);
+                // sprintf(error_message, "{\"message\":\"No response on DALI bus\", \"popID\":\"%s\"}", popID);
+                // send_tcp_message(error_message);
                 error_counter = 0;
             }
             else
             {
                 error_counter = 0;
+            }
+            vTaskDelay(3000 / portTICK_PERIOD_MS);
+            break;
+
+        case NOT_AUTHENTICATED_STATE:
+            ESP_LOGE(TAG, "System not authenticated");
+            if (authenticated(devices_on_bus, devices_on_bus_count))
+            {
+                ESP_LOGI(TAG, "System authenticated");
+                set_state(SYSTEM_RUNNING_STATE);
             }
             vTaskDelay(3000 / portTICK_PERIOD_MS);
             break;

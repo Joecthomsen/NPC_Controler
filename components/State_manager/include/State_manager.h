@@ -33,6 +33,7 @@ typedef enum State_t
     TCP_SERVER_INIT_STATE,
     MDNS_INIT_STATE,
     AUTHENTICATION_STATE,
+    NOT_AUTHENTICATED_STATE,
     SYSTEM_RUNNING_STATE,
 
     // Error states

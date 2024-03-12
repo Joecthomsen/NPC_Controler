@@ -199,74 +199,53 @@ void message_handler(char *rx_buffer, int len, int socket)
 
     else if (strncmp(rx_buffer, "SET_REFRESH_TOKEN", strlen("SET_REFRESH_TOKEN")) == 0)
     {
-        // Skip "SET_REFRESH_TOKEN" command to get the tokens
-        char *tokens_start = rx_buffer + strlen("SET_REFRESH_TOKEN") + 1; // Plus one for the whitespace after the command
+        // Skip "SET_REFRESH_TOKEN" command to get the token
+        char *token_start = rx_buffer + strlen("SET_REFRESH_TOKEN") + 1; // Plus one for the whitespace after the command
 
-        // Find the end of the tokens
-        char *token_end = strchr(tokens_start, ' ');
+        // Find the end of the token
+        char *token_end = strchr(token_start, '\0'); // Token ends at the null terminator
 
         if (token_end != NULL)
         {
-            // First token
-            *token_end = '\0'; // Null-terminate the first token
-            char *short_address = tokens_start;
+            // Token found
+            *token_end = '\0'; // Null-terminate the token
+            char *refresh_token = token_start;
 
-            // Move to the next character after the whitespace
-            tokens_start = token_end + 1;
+            // Calculate the length of the token
+            uint16_t token_len = token_end - token_start;
 
-            // Find the end of the second token
-            token_end = strchr(tokens_start, '\0');
-
-            if (token_end != NULL)
+            // Ensure the token length is within bounds
+            if (token_len > 0)
             {
-                // Second token
-                char *refresh_token = tokens_start;
+                // Call nvs_set_token function with the token and its length
+                bool result = nvs_set_string("authentication", "refresh_token", refresh_token);
+                ESP_LOGI(TAG, "Refresh Token: %s", refresh_token);
 
-                // Calculate the lengths of the tokens
-                uint16_t first_token_len = strlen(short_address);
-                uint16_t second_token_len = token_end - refresh_token;
-
-                // Ensure both token lengths are within bounds
-                if (first_token_len > 0 && second_token_len > 0)
+                // Check if setting the token was successful
+                if (result)
                 {
-                    // Call nvs_set_token function with the tokens and their lengths
-                    bool result = nvs_set_string("authentication", short_address, refresh_token);
-                    // result &= nvs_set_string("authentication", "refresh_token", refresh_token);
-                    ESP_LOGI(TAG, "Token 1: %s", short_address);
-                    ESP_LOGI(TAG, "Token 2: %s", refresh_token);
-
-                    // Check if setting the tokens was successful
-                    if (result)
-                    {
-                        // If successful, send a success response
-                        const char *success_msg = "Tokens set successfully";
-                        send(socket, success_msg, strlen(success_msg), 0);
-                    }
-                    else
-                    {
-                        // If unsuccessful, send an error response
-                        const char *error_msg = "Failed to set tokens";
-                        send(socket, error_msg, strlen(error_msg), 0);
-                    }
+                    // If successful, send a success response
+                    const char *success_msg = "Token set successfully";
+                    send(socket, success_msg, strlen(success_msg), 0);
                 }
                 else
                 {
-                    // Handle case where one or both tokens are empty
-                    const char *error_msg = "Invalid tokens provided";
+                    // If unsuccessful, send an error response
+                    const char *error_msg = "Failed to set token";
                     send(socket, error_msg, strlen(error_msg), 0);
                 }
             }
             else
             {
-                // Handle case where only one token is provided
-                const char *error_msg = "Second token missing";
+                // Handle case where the token is empty
+                const char *error_msg = "Empty token provided";
                 send(socket, error_msg, strlen(error_msg), 0);
             }
         }
         else
         {
-            // Handle case where no tokens are found
-            const char *error_msg = "Tokens missing";
+            // Handle case where no token is found
+            const char *error_msg = "Token missing";
             send(socket, error_msg, strlen(error_msg), 0);
         }
     }
@@ -375,8 +354,13 @@ void message_handler(char *rx_buffer, int len, int socket)
             if (result)
             {
                 // If successful, send a success response
-                const char *success_msg = "Refresh token set successfully";
+                const char *success_msg = "Refresh token set successfully in NVS";
                 send(socket, success_msg, strlen(success_msg), 0);
+            }
+            else
+            {
+                const char *error_msg = "Failed to set refresh token in NVS";
+                send(socket, error_msg, strlen(error_msg), 0);
             }
         }
         else
@@ -422,52 +406,55 @@ char *get_controler_state(void)
     switch (current_state)
     {
     case NVS_INIT_STATE:
-        sprintf(response, "{\"status\":\"NVS initialization state\"}");
+        sprintf(response, "{\"status\":\"NVS initialization state\", \"popID\":\"%s\"}", popID);
         break;
     case AWAIT_WIFI_PROVISIONING_STATE:
-        sprintf(response, "{\"status\":\"Awaiting WiFi provisioning\"}");
+        sprintf(response, "{\"status\":\"Awaiting WiFi provisioning\", \"popID\":\"%s\"}", popID);
         break;
     case WIFI_PROVISIONING_STATE:
-        sprintf(response, "{\"status\":\"WiFi provisioning state\"}");
+        sprintf(response, "{\"status\":\"WiFi provisioning state\", \"popID\":\"%s\"}", popID);
         break;
     case WIFI_CONNECTED_STATE:
-        sprintf(response, "{\"status\":\"WiFi connected state\"}");
+        sprintf(response, "{\"status\":\"WiFi connected state\", \"popID\":\"%s\"}", popID);
         break;
     case DALI_COMMUNICATION_INIT_STATE:
-        sprintf(response, "{\"status\":\"DALI communication initialization state\"}");
+        sprintf(response, "{\"status\":\"DALI communication initialization state\", \"popID\":\"%s\"}", popID);
         break;
     case DALI_COMMUNICATION_OK_STATE:
-        sprintf(response, "{\"status\":\"DALI communication OK state\"}");
+        sprintf(response, "{\"status\":\"DALI communication OK state\", \"popID\":\"%s\"}", popID);
         break;
     case ANALYZE_DALI_BUS_STATE:
-        sprintf(response, "{\"status\":\"Analyzing DALI bus state\"}");
+        sprintf(response, "{\"status\":\"Analyzing DALI bus state\", \"popID\":\"%s\"}", popID);
         break;
     case TCP_SERVER_INIT_STATE:
-        sprintf(response, "{\"status\":\"TCP server initialization state\"}");
+        sprintf(response, "{\"status\":\"TCP server initialization state\", \"popID\":\"%s\"}", popID);
         break;
     case MDNS_INIT_STATE:
-        sprintf(response, "{\"status\":\"mDNS initialization state\"}");
+        sprintf(response, "{\"status\":\"mDNS initialization state\", \"popID\":\"%s\"}", popID);
         break;
     case AUTHENTICATION_STATE:
-        sprintf(response, "{\"status\":\"Authentication state\"}");
+        sprintf(response, "{\"status\":\"Authentication state\", \"popID\":\"%s\"}", popID);
+        break;
+    case NOT_AUTHENTICATED_STATE:
+        sprintf(response, "{\"status\":\"Not authenticated state\", \"popID\":\"%s\"}", popID);
         break;
     case SYSTEM_RUNNING_STATE:
-        sprintf(response, "{\"status\":\"System is running\"}");
+        sprintf(response, "{\"status\":\"System is running\", \"popID\":\"%s\"}", popID);
         break;
     case NO_WIFI_STATE:
-        sprintf(response, "{\"status\":\"No WiFi connection\"}");
+        sprintf(response, "{\"status\":\"No WiFi connection\", \"popID\":\"%s\"}", popID);
         break;
     case DALI_BUS_CORRUPTED_STATE:
-        sprintf(response, "{\"status\":\"DALI bus corrupted state\"}");
+        sprintf(response, "{\"status\":\"DALI bus corrupted state\", \"popID\":\"%s\"}", popID);
         break;
     case DALI_BUS_NOT_COMMISIONED_STATE:
-        sprintf(response, "{\"status\":\"DALI bus not commissioned state\"}");
+        sprintf(response, "{\"status\":\"DALI bus not commissioned state\", \"popID\":\"%s\"}", popID);
         break;
     case NO_RESPONSE_ON_DALI_BUS:
-        sprintf(response, "{\"status\":\"No response on DALI bus\"}");
+        sprintf(response, "{\"status\":\"No response on DALI bus\", \"popID\":\"%s\"}", popID);
         break;
     default:
-        sprintf(response, "{\"status\":\"Unknown state or prehaps a programmer added a state without adding it here! Dammit programmer!\"}");
+        sprintf(response, "{\"status\":\"Unknown state or perhaps a programmer added a state without adding it here! Dammit programmer!\"}");
         break;
     }
     return response;

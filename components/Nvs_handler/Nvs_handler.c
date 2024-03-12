@@ -456,34 +456,27 @@ bool authenticated(Device_t devices_on_bus[64], uint16_t devices_on_bus_count)
     }
     else
     {
-        for (int i = 0; i < devices_on_bus_count; i++)
+
+        size_t token_len = 0;
+        char key[] = "refresh_token";
+        // sprintf(key, "%hhu", devices_on_bus[i].short_address);
+        err = nvs_get_str(my_handle, key, NULL, &token_len);
+
+        if (err == ESP_ERR_NVS_NOT_FOUND)
         {
-            size_t token_len = 0;
-            char key[4];
-            sprintf(key, "%hhu", devices_on_bus[i].short_address);
-            err = nvs_get_str(my_handle, key, NULL, &token_len);
-
-            if (err == ESP_ERR_NVS_NOT_FOUND)
-            {
-                ESP_LOGI("authenticated", "No refresh key: %s. (ESP_ERR_NVS_NOT_FOUND)", key);
-                return false;
-            }
-            else if (err != ESP_OK)
-            {
-                ESP_LOGE("authenticated", "Error reading refresh token! (%s)\n", esp_err_to_name(err));
-                return false;
-            }
-            else
-            {
-                ESP_LOGI("authenticated", "Refresh key: %s", key);
-            }
-            // else
-            // {
-            //     return false;
-            //     // returnValue = (err == ESP_OK); // If refresh token exists, return true
-            // }
+            ESP_LOGI("authenticated", "No refresh key: %s. (ESP_ERR_NVS_NOT_FOUND)", key);
+            return false;
         }
-
+        else if (err != ESP_OK)
+        {
+            ESP_LOGE("authenticated", "Error reading refresh token! (%s)\n", esp_err_to_name(err));
+            return false;
+        }
+        else
+        {
+            ESP_LOGI("authenticated", "Refresh key: %s", key);
+            return true;
+        }
         nvs_close(my_handle);
     }
     return true;

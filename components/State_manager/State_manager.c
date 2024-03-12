@@ -170,6 +170,14 @@ void state_task(void *parameter)
             vTaskDelay(500 / portTICK_PERIOD_MS);
             break;
 
+        case NOT_AUTHENTICATED_STATE:
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_YELLOW, HIGH);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_GREEN, LOW);
+            gpio_set_level(STATE_MANAGER_GPIO_PIN_BLUE, LOW);
+            vTaskDelay(500 / portTICK_PERIOD_MS);
+            break;
+
         default:
             ESP_LOGE("State_manager", "Unknown state error");
             gpio_set_level(STATE_MANAGER_GPIO_PIN_RED, HIGH);
