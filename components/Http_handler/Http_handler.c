@@ -56,7 +56,7 @@ char *get_access_token(uint8_t short_address)
 
     // Configure HTTP client for the request
     esp_http_client_config_t config = {
-        .url = "http://95.217.159.233/auth/refresh_token_controller",
+        .url = "http://95.217.159.233/auth/controller/refresh_token",
         .method = HTTP_METHOD_POST,
         .cert_pem = NULL,
         .auth_type = HTTP_AUTH_TYPE_NONE,
@@ -311,7 +311,7 @@ Http_status post_json_data(const char **keys, const char **values, int num_pairs
     // Replace the following lines with your HTTP POST request logic using esp_http_client
     // Example:
     esp_http_client_config_t config = {
-        .url = "http://95.217.159.233/controle_gear/new_data_instance", //"http://httpbin.org/post",
+        .url = "http://95.217.159.233/controller/new_data_instance", //"http://httpbin.org/post",
         .method = HTTP_METHOD_POST,
         //.buffer_size = strlen(json_buffer) + 1, // Add 1 for null terminator
         .cert_pem = NULL,

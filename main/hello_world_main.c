@@ -182,7 +182,7 @@ void app_main(void)
             size_t number_of_manufactoring_ids_fetched = 0;
             uint64_t *res = getControleGearsRemote(&number_of_manufactoring_ids_fetched);
 
-            bool new_controle_gear_found = false;
+            bool new_controle_gear_found; // = false;
 
             printf("number of id fetched: %d\n", number_of_manufactoring_ids_fetched);
             for (size_t i = 0; i < number_of_manufactoring_ids_fetched; i++)
@@ -193,12 +193,12 @@ void app_main(void)
             // printf("Number of manufactoring ids fetched: %u\n", number_of_manufactoring_ids_fetched);
             for (size_t i = 0; i < devices_on_bus_count; i++)
             {
-                new_controle_gear_found = false;
+                new_controle_gear_found = true;
                 for (size_t j = 0; j < number_of_manufactoring_ids_fetched; j++)
                 {
                     if (devices_on_bus[i].manufactoring_id == res[j])
                     {
-                        new_controle_gear_found = true;
+                        new_controle_gear_found = false;
                         vTaskDelay(2000 / portTICK_PERIOD_MS);
                         break;
                     }
@@ -207,10 +207,10 @@ void app_main(void)
                 {
                     ESP_LOGI(TAG, "New controle gear found: %llu", devices_on_bus[i].manufactoring_id);
                     add_controle_gear_to_db(devices_on_bus[i].manufactoring_id);
+                    vTaskDelay(3000 / portTICK_PERIOD_MS);
                 }
             }
             ESP_LOGI(TAG, "Synchronizing backend done");
-            vTaskDelay(4000 / portTICK_PERIOD_MS);
             set_state(SYSTEM_RUNNING_STATE);
             break;
 
