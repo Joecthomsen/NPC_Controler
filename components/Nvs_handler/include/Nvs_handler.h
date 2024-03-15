@@ -98,6 +98,8 @@ bool nvs_set_string(char *namespace, const char *key, char *value);
 bool nvs_get_string(char *namespace, const char *key, char *return_value);
 
 bool authenticated(Device_t devices_on_bus[64], uint16_t devices_on_bus_count);
+void nvs_read_all_manufactoring_ids_array(char manufactoring_ids[][10], size_t max_ids, size_t *num_ids);
+esp_err_t getNumKeysInNamespace(const char *namespace, size_t *num_keys);
 
 // char *get_manufacturing_id(uint8_t short_address);
 // bool manufactoring_id_stored(const char *key);

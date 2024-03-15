@@ -82,8 +82,8 @@ void app_main(void)
             char *access_token_namespace = "authentication";
             const char *key = "refresh_token";
             nvs_delete_key_value_pair(access_token_namespace, key);
-            // nvs_delete_key_value_pair("authentication", "0");
-            // nvs_delete_key_value_pair("authentication", "1");
+            //  nvs_delete_key_value_pair("authentication", "0");
+            //  nvs_delete_key_value_pair("authentication", "1");
 
             // Until here
             set_state(INIT_POP_STATE);
@@ -163,8 +163,9 @@ void app_main(void)
             ESP_LOGI(TAG, "System authentication");
             if (authenticated(devices_on_bus, devices_on_bus_count))
             {
-                ESP_LOGI(TAG, "System authenticated");
-                set_state(SYSTEM_RUNNING_STATE);
+                ESP_LOGI(TAG, "Refresh token is stored in NVS \nFetching access token");
+                refresh_token();
+                set_state(SYNCRONIZE_BACKEND_STATE);
                 break;
             }
             else
@@ -172,6 +173,45 @@ void app_main(void)
                 set_state(NOT_AUTHENTICATED_STATE);
                 vTaskDelay(3000 / portTICK_PERIOD_MS);
             }
+            break;
+
+        case SYNCRONIZE_BACKEND_STATE:
+            ESP_LOGI(TAG, "Synchronizing backend");
+            uint64_t manufactoring_ids_fetched[64];
+
+            size_t number_of_manufactoring_ids_fetched = 0;
+            getControleGearsRemote(&manufactoring_ids_fetched, &number_of_manufactoring_ids_fetched);
+
+            bool new_controle_gear_found = false;
+
+            printf("number of id fetched: %d\n", number_of_manufactoring_ids_fetched);
+            for (size_t i = 0; i < number_of_manufactoring_ids_fetched; i++)
+            {
+                printf("Manufactoring id fetched: %llu\n", manufactoring_ids_fetched[i]);
+            }
+
+            // printf("Number of manufactoring ids fetched: %u\n", number_of_manufactoring_ids_fetched);
+            for (size_t i = 0; i < devices_on_bus_count; i++)
+            {
+                new_controle_gear_found = false;
+                for (size_t j = 0; j < number_of_manufactoring_ids_fetched; j++)
+                {
+                    if (devices_on_bus[i].manufactoring_id == manufactoring_ids_fetched[j])
+                    {
+                        new_controle_gear_found = true;
+                        vTaskDelay(2000 / portTICK_PERIOD_MS);
+                        break;
+                    }
+                }
+                if (!new_controle_gear_found)
+                {
+                    ESP_LOGI(TAG, "New controle gear found: %llu", devices_on_bus[i].manufactoring_id);
+                    add_controle_gear_to_db(devices_on_bus[i].manufactoring_id);
+                }
+            }
+            ESP_LOGI(TAG, "Synchronizing backend done");
+            vTaskDelay(4000 / portTICK_PERIOD_MS);
+            set_state(SYSTEM_RUNNING_STATE);
             break;
 
         case SYSTEM_RUNNING_STATE:
@@ -247,8 +287,9 @@ void app_main(void)
             ESP_LOGE(TAG, "System not authenticated");
             if (authenticated(devices_on_bus, devices_on_bus_count))
             {
-                ESP_LOGI(TAG, "System authenticated");
-                set_state(SYSTEM_RUNNING_STATE);
+                ESP_LOGI(TAG, "Refresh token is stored in NVS \nFetching access token");
+                refresh_token();
+                set_state(SYNCRONIZE_BACKEND_STATE);
             }
             vTaskDelay(3000 / portTICK_PERIOD_MS);
             break;

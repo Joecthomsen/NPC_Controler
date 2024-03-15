@@ -3,10 +3,15 @@
 #include "esp_http_client.h"
 #include "Nvs_handler.h"
 #include "esp_log.h"
+#include "constants.h"
 
 #define JSON_BUFFER_SIZE 2048 // Adjust this based on your expected JSON size
 
 char new_access_token[256];
+
+bool response_received = false;
+char control_gears[MAX_CONTROLE_GEARS][10];
+size_t control_gears_count = 0;
 
 uint8_t current_device_short_address = 0;
 
@@ -14,6 +19,9 @@ uint8_t current_device_short_address = 0;
 void create_json_object(const char **keys, const char **values, int num_pairs, char *json_buffer);
 esp_err_t http_event_handler(esp_http_client_event_t *evt);
 char *get_access_token(uint8_t short_address);
+
+uint64_t *global_elements = NULL;
+size_t global_num_elements = 0;
 
 HTTP_REQUEST_TYPE HTTP_REQUEST = HTTP_NON_REQUEST;
 
@@ -29,7 +37,7 @@ char *get_access_token(uint8_t short_address)
 
     // Your existing code to obtain the refresh token
     char refresh_token[512];
-    bool error = nvs_get_string("authentication", short_addr_key, refresh_token);
+    bool error = nvs_get_string("authentication", "refresh_token", refresh_token);
 
     if (!error)
     {
@@ -48,7 +56,7 @@ char *get_access_token(uint8_t short_address)
 
     // Configure HTTP client for the request
     esp_http_client_config_t config = {
-        .url = "http://65.108.92.248/auth/refreshToken_device",
+        .url = "http://95.217.159.233/auth/refresh_token_controller",
         .method = HTTP_METHOD_POST,
         .cert_pem = NULL,
         .auth_type = HTTP_AUTH_TYPE_NONE,
@@ -97,6 +105,72 @@ void create_json_object(const char **keys, const char **values, int num_pairs, c
     json_buffer[strlen(json_buffer) - 1] = '}';
 }
 
+// Function to parse JSON response and extract controleGears array
+uint64_t *parseJSONResponse(const char *response, int *num_elements)
+{
+    // Find the start position of the "controleGears" array
+    const char *start_pos = strstr(response, "\"controleGears\":[");
+    if (start_pos == NULL)
+    {
+        // "controleGears" array not found
+        *num_elements = 0;
+        return NULL;
+    }
+
+    start_pos += strlen("\"controleGears\":[");
+
+    // Allocate memory for the array of uint64_t values
+    uint64_t *elements = (uint64_t *)malloc(sizeof(uint64_t) * 64);
+    if (elements == NULL)
+    {
+        // Memory allocation failed
+        *num_elements = 0;
+        return NULL;
+    }
+
+    // Extract uint64_t values from the "controleGears" array
+    int index = 0;
+    const char *ptr = start_pos;
+    while (*ptr != ']' && index < 64)
+    {
+        // Skip leading whitespaces
+        while (*ptr == ' ' || *ptr == '\t' || *ptr == '\n' || *ptr == '\r')
+            ptr++;
+
+        // Expecting a double quote for the start of a value
+        if (*ptr == '"')
+        {
+            ptr++; // Move past the opening double quote
+
+            // Find the end of the uint64_t value
+            const char *value_start = ptr;
+            while (*ptr != '"' && *ptr != '\0')
+                ptr++;
+
+            // Check if we found the end of the value
+            if (*ptr == '"')
+            {
+                // Extract the value string
+                char value_str[32]; // Assuming no uint64 will exceed 32 characters
+                int value_length = ptr - value_start;
+                if (value_length < sizeof(value_str))
+                {
+                    strncpy(value_str, value_start, value_length);
+                    value_str[value_length] = '\0';
+                    // Convert the string to uint64_t and store it in the array
+                    elements[index++] = strtoull(value_str, NULL, 10);
+                }
+            }
+        }
+
+        // Move to the next character
+        ptr++;
+    }
+
+    *num_elements = index;
+    return elements;
+}
+
 esp_err_t http_event_handler(esp_http_client_event_t *evt)
 {
     switch (evt->event_id)
@@ -106,14 +180,14 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
         char data[512];
         memcpy(data, evt->data, evt->data_len);
         data[evt->data_len] = '\0';
-        ESP_LOGI("HTTP_EVENT_ON_DATA", "HTTP_EVENT_ON_DATA, len: %d data: %s\n", evt->data_len, data);
+        ESP_LOGI("HTTP_EVENT_ON_DATA", " len: %d data: %s\n", evt->data_len, data);
 
         switch (HTTP_REQUEST)
         {
         case HTTP_NON_REQUEST:
             break;
 
-        case HTTP_ACCESS_TOKEN_REQUEST:
+        case HTTP_REFRESH_TOKEN_REQUEST:
             // Search for "accessToken" field manually
             const char *data = (char *)evt->data;
             const char *token_start = strstr(data, "\"accessToken\":\"");
@@ -129,6 +203,11 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
                     access_token[token_len] = '\0';
                     printf("Access Token: %s\n", access_token);
                     strcpy(new_access_token, access_token);
+                    bool result = nvs_set_string("authentication", "access_token", access_token);
+                    if (!result)
+                    {
+                        ESP_LOGE("HTTP_HANDLER", "Error re-setting access token in NVS");
+                    }
                     // Do whatever you want with the access token here
                 }
                 else
@@ -153,7 +232,7 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
                     printf("Refresh Token: %s\n", refresh_token);
                     char key[4];
                     snprintf(key, sizeof(key), "%hhu", current_device_short_address);
-                    bool result = nvs_set_string("authentication", key, refresh_token);
+                    bool result = nvs_set_string("authentication", "refresh_token", refresh_token);
                     if (!result)
                     {
                         ESP_LOGE("HTTP_HANDLER", "Error re-setting refresh token in NVS");
@@ -171,6 +250,24 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
                 printf("Access Token not found.\n");
             }
             HTTP_REQUEST = HTTP_NON_REQUEST;
+            break;
+
+        case HTTP_GET_CONTROL_GEARS_REQUEST:
+            const char *response = (char *)evt->data;
+            printf("Data: %s\n", response);
+
+            int num_elements;
+            uint64_t *elements = parseJSONResponse(response, &num_elements);
+
+            printf("Number of elements: %d\n", num_elements);
+            for (int i = 0; i < num_elements; i++)
+            {
+                printf("Element %d: %llu\n", i, elements[i]);
+            }
+
+            global_elements = elements;
+            global_num_elements = num_elements;
+
             break;
 
         default:
@@ -198,7 +295,7 @@ Http_status post_json_data(const char **keys, const char **values, int num_pairs
     // Replace the following lines with your HTTP POST request logic using esp_http_client
     // Example:
     esp_http_client_config_t config = {
-        .url = "http://65.108.92.248/controleGear/new_data_instance", //"http://httpbin.org/post",
+        .url = "http://95.217.159.233/controle_gear/new_data_instance", //"http://httpbin.org/post",
         .method = HTTP_METHOD_POST,
         //.buffer_size = strlen(json_buffer) + 1, // Add 1 for null terminator
         .cert_pem = NULL,
@@ -285,8 +382,7 @@ Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear)
         "light_source_temperature",
         "rated_median_usefull_life_of_luminare",
         "internal_controle_gear_reference_temperature",
-        "rated_median_usefull_light_source_starts",
-        "email"};
+        "rated_median_usefull_light_source_starts"};
 
     // Allocate memory for the values array
     const char **values = (const char **)malloc(sizeof(const char *) * (sizeof(keys) / sizeof(keys[0])));
@@ -296,21 +392,21 @@ Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear)
         return 0; // Or any appropriate error status
     }
 
-    char email[100];
-    nvs_get_string("authentication", "email", email);
-    // Copy the email to a dynamically allocated buffer
-    char *email_value_buffer = (char *)malloc((strlen(email) + 1) * sizeof(char)); // Allocate memory for email
-    if (email_value_buffer == NULL)
-    {
-        printf("Error: Failed to allocate memory for email value buffer\n");
-        free(values); // Free previously allocated memory
-        return 0;     // Or any appropriate error status
-    }
-    strcpy(email_value_buffer, email); // Copy email to the buffer
+    // char email[100];
+    // nvs_get_string("authentication", "email", email);
+    // // Copy the email to a dynamically allocated buffer
+    // char *email_value_buffer = (char *)malloc((strlen(email) + 1) * sizeof(char)); // Allocate memory for email
+    // if (email_value_buffer == NULL)
+    // {
+    //     printf("Error: Failed to allocate memory for email value buffer\n");
+    //     free(values); // Free previously allocated memory
+    //     return 0;     // Or any appropriate error status
+    // }
+    // strcpy(email_value_buffer, email); // Copy email to the buffer
 
     // Assign the email value buffer to the values array
-    values[sizeof(keys) / sizeof(keys[0]) - 1] = email_value_buffer;
-    ESP_LOGI("HTTP_CLIENT", "Email fetched: %s", email);
+    // values[sizeof(keys) / sizeof(keys[0]) - 1] = email_value_buffer;
+    // ESP_LOGI("HTTP_CLIENT", "Email fetched: %s", email);
 
     // nvs_get_email(email);
 
@@ -450,17 +546,6 @@ Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear)
         case 38:
             sprintf(value_buffer, "%u", controle_gear->rated_median_usefull_light_source_starts);
             break;
-        case 39:
-            // Allocate memory for value_buffer
-            value_buffer = (char *)malloc((strlen(email) + 1) * sizeof(char));
-            if (value_buffer == NULL)
-            {
-                printf("Error: Failed to allocate memory for value buffer\n");
-                return 0; // Or any appropriate error status
-            }
-            // Copy the email into value_buffer
-            strcpy(value_buffer, email);
-            break;
         }
 
         // Assign value buffer to values array
@@ -479,4 +564,142 @@ Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear)
 
     return status;
     // return 0;
+}
+
+// esp_err_t http_event_handler_fetch_controle_gear(esp_http_client_event_t *evt)
+// {
+//     char data[512];
+//     memcpy(data, evt->data, evt->data_len);
+//     data[evt->data_len] = '\0';
+//     ESP_LOGI("HTTP_EVENT_ON_DATA (Fetch Controle Gears):", " len: %d data: %s\n", evt->data_len, data);
+//     char *reponse = (char *)evt->data;
+//     printf("Data: %s\n", reponse);
+//     // if (data != NULL)
+//     // {
+//     //     parseJSONResponse(data);
+//     // }
+//     // else
+//     // {
+//     //     ESP_LOGE("HTTP_HANDLER", "Error: No data received from server");
+//     // }
+//     HTTP_REQUEST = HTTP_NON_REQUEST;
+//     response_received = true;
+//     return ESP_OK;
+// }
+
+void getControleGearsRemote(uint64_t **manufactoring_id_fetched, size_t *numGears)
+{
+    // *manufactoring_id_fetched_i = manufactoring_id_fetched;
+    // numGears_i = numGears;
+    //*numGears = sizeof(controleGears) / sizeof(controleGears[0]);
+
+    char url[100];
+    char access_token[512] = {0};
+    nvs_get_string("authentication", "access_token", access_token);
+    snprintf(url, sizeof(url), "http://95.217.159.233/controller/controle_gears/%s", popID);
+
+    // Configure HTTP client for the request
+    esp_http_client_config_t config = {
+        .url = url, //"http://95.217.159.233/controller/controle_gears/abcd1234",
+        .method = HTTP_METHOD_GET,
+        .cert_pem = NULL,
+        .auth_type = HTTP_AUTH_TYPE_NONE,
+        .buffer_size = 1024,
+        .event_handler = http_event_handler};
+    // Initialize HTTP client
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_header(client, "token", access_token);
+
+    // Perform HTTP POST request
+    esp_err_t err = ESP_FAIL;
+    HTTP_REQUEST = HTTP_GET_CONTROL_GEARS_REQUEST;
+    err = esp_http_client_perform(client);
+
+    *manufactoring_id_fetched = global_elements; // Assuming 'elements' is the array created in http_event_handler
+    *numGears = global_num_elements;
+
+    // // Cleanup HTTP client
+    // while (!response_received)
+    //     ;
+    // response_received = false;
+    esp_http_client_cleanup(client);
+}
+
+void refresh_token()
+{
+    // Reinitialize tokens
+    // char access_token[512] = {0};
+    char refresh_token[512] = {0};
+    nvs_get_string("authentication", "refresh_token", refresh_token);
+
+    // Configure HTTP client for the request
+    esp_http_client_config_t config = {
+        .url = "http://95.217.159.233/auth/controller/refresh_token",
+        .method = HTTP_METHOD_POST,
+        .cert_pem = NULL,
+        .auth_type = HTTP_AUTH_TYPE_NONE,
+        .buffer_size = 1024,
+        .event_handler = http_event_handler};
+    // Concatenate the popID to the URL
+    // Initialize HTTP client
+
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+
+    // Create JSON object containing the refresh token
+    const char *key[] = {"refreshToken"};
+    const char *value[] = {refresh_token};
+    char json_buffer[1024] = {0};
+    create_json_object(key, value, 1, json_buffer);
+
+    esp_http_client_set_post_field(client, json_buffer, strlen(json_buffer));
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+
+    HTTP_REQUEST = HTTP_REFRESH_TOKEN_REQUEST;
+    esp_err_t err = esp_http_client_perform(client);
+    if (err == ESP_OK)
+    {
+        printf("HTTP POST Status = %d, content_length = %lld\n",
+               esp_http_client_get_status_code(client),
+               esp_http_client_get_content_length(client));
+    }
+    else
+    {
+        printf("Error perform http request %s", esp_err_to_name(err));
+    }
+    // Cleanup HTTP client
+    esp_http_client_cleanup(client);
+}
+
+void add_controle_gear_to_db(uint64_t manufactoring_id)
+{
+
+    char access_token[512] = {0};
+    nvs_get_string("authentication", "access_token", access_token);
+    esp_http_client_config_t config = {
+        .url = "http://95.217.159.233/controller/add_control_gear",
+        .method = HTTP_METHOD_POST,
+        .cert_pem = NULL,
+        .auth_type = HTTP_AUTH_TYPE_NONE,
+        .buffer_size = 1024,
+        .event_handler = http_event_handler};
+
+    esp_http_client_handle_t client = esp_http_client_init(&config);
+
+    char manufactoring_id_str[21]; // 21 characters are enough to hold the maximum uint64_t value
+    snprintf(manufactoring_id_str, sizeof(manufactoring_id_str), "%llu", (unsigned long long)manufactoring_id);
+
+    // Create JSON object containing the refresh token
+    const char *key[] = {"manufactoringID", "popID"};
+    const char *value[] = {manufactoring_id_str, popID};
+    char json_buffer[1024] = {0};
+    create_json_object(key, value, 2, json_buffer);
+
+    esp_http_client_set_post_field(client, json_buffer, strlen(json_buffer));
+    esp_http_client_set_header(client, "Content-Type", "application/json");
+    esp_http_client_set_header(client, "token", access_token);
+
+    HTTP_REQUEST = HTTP_NON_REQUEST; // TODO Just temporary. Implement a better solution
+
+    esp_err_t err = esp_http_client_perform(client);
 }

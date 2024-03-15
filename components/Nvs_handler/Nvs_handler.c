@@ -371,6 +371,28 @@ void nvs_write_manufactoring_id(const char *key, uint64_t value)
     }
 }
 
+void nvs_get_control_gears(uint64_t *manufactoring_id_fetched, size_t max_ids, size_t *numGears)
+{
+    // Ensure the input pointers are valid
+    if (manufactoring_id_fetched == NULL || numGears == NULL)
+    {
+        return;
+    }
+
+    // Fetch manufacturing IDs and populate the array
+    for (size_t i = 0; i < max_ids; i++)
+    {
+        // Example: fetching manufacturing IDs from NVS
+        // Replace this with your actual implementation
+        uint64_t id = nvs_read_manufactoring_id(i);
+        if (id != 0)
+        {
+            manufactoring_id_fetched[*numGears] = id;
+            (*numGears)++;
+        }
+    }
+}
+
 uint64_t nvs_read_manufactoring_id(const char *key)
 {
     nvs_handle_t my_handle;
@@ -444,6 +466,69 @@ char *nvs_read_all_manufactoring_ids()
     return csv_buffer;
 }
 
+// Function to get the number of keys in a namespace
+esp_err_t getNumKeysInNamespace(const char *namespace, size_t *num_keys)
+{
+    // Open the NVS handle
+    nvs_handle_t nvs_handle;
+    esp_err_t err = nvs_open(namespace, NVS_READWRITE, &nvs_handle);
+    if (err != ESP_OK)
+    {
+        return err;
+    }
+
+    // Get the number of keys in the namespace
+    err = nvs_get_used_entry_count(nvs_handle, num_keys);
+    if (err != ESP_OK)
+    {
+        nvs_close(nvs_handle);
+        return err;
+    }
+
+    // Close the NVS handle
+    nvs_close(nvs_handle);
+
+    return ESP_OK;
+}
+
+void nvs_read_all_manufactoring_ids_array(char manufactoring_ids[][10], size_t max_ids, size_t *num_ids)
+{
+    nvs_handle_t my_handle;
+    esp_err_t err = nvs_open("manu_id", NVS_READWRITE, &my_handle);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Error (%s) opening NVS handle!\n", esp_err_to_name(err));
+        *num_ids = 0;
+        return;
+    }
+
+    // Read manufacturing IDs
+    *num_ids = 0;
+    char key[32];                                  // Adjust the size as needed
+    for (int i = 0; i < devices_on_bus_count; i++) // Adjust devices_on_bus_count as needed
+    {
+        snprintf(key, sizeof(key), "%d", i);
+        uint64_t value = nvs_read_manufactoring_id(key);
+        if (value != 0) // Assuming 0 is not a valid manufacturing ID
+        {
+            if (*num_ids < max_ids)
+            {
+                // Convert the manufacturing ID to a string
+                snprintf(manufactoring_ids[*num_ids], 21, "%llu", value);
+                (*num_ids)++;
+            }
+            else
+            {
+                // Array is full, stop reading
+                break;
+            }
+        }
+    }
+
+    // Close NVS handle
+    nvs_close(my_handle);
+}
+
 bool authenticated(Device_t devices_on_bus[64], uint16_t devices_on_bus_count)
 {
     bool returnValue = false;
@@ -457,14 +542,15 @@ bool authenticated(Device_t devices_on_bus[64], uint16_t devices_on_bus_count)
     else
     {
 
-        size_t token_len = 0;
-        char key[] = "refresh_token";
+        size_t token_len = 512;
+        char refresh_token[512];
+        char key_refresh[] = "refresh_token";
         // sprintf(key, "%hhu", devices_on_bus[i].short_address);
-        err = nvs_get_str(my_handle, key, NULL, &token_len);
+        err = nvs_get_str(my_handle, key_refresh, refresh_token, &token_len);
 
         if (err == ESP_ERR_NVS_NOT_FOUND)
         {
-            ESP_LOGI("authenticated", "No refresh key: %s. (ESP_ERR_NVS_NOT_FOUND)", key);
+            ESP_LOGI("authenticated", "No refresh token: %s. (ESP_ERR_NVS_NOT_FOUND)", key_refresh);
             return false;
         }
         else if (err != ESP_OK)
@@ -474,7 +560,7 @@ bool authenticated(Device_t devices_on_bus[64], uint16_t devices_on_bus_count)
         }
         else
         {
-            ESP_LOGI("authenticated", "Refresh key: %s", key);
+            ESP_LOGI("authenticated", "Refresh token: %s \nFetching access token from server", refresh_token);
             return true;
         }
         nvs_close(my_handle);
