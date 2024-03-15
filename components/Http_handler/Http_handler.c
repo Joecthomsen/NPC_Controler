@@ -20,7 +20,7 @@ void create_json_object(const char **keys, const char **values, int num_pairs, c
 esp_err_t http_event_handler(esp_http_client_event_t *evt);
 char *get_access_token(uint8_t short_address);
 
-uint64_t *global_elements = NULL;
+uint64_t global_elements[64]; // = NULL;
 size_t global_num_elements = 0;
 
 HTTP_REQUEST_TYPE HTTP_REQUEST = HTTP_NON_REQUEST;
@@ -258,15 +258,31 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
 
             int num_elements;
             uint64_t *elements = parseJSONResponse(response, &num_elements);
+            global_num_elements = num_elements;
 
             printf("Number of elements: %d\n", num_elements);
             for (int i = 0; i < num_elements; i++)
             {
                 printf("Element %d: %llu\n", i, elements[i]);
+                global_elements[i] = elements[i];
             }
 
-            global_elements = elements;
-            global_num_elements = num_elements;
+            // Allocate memory for global_elements
+            // global_elements = (uint64_t *)malloc(num_elements * sizeof(uint64_t));
+            // if (global_elements != NULL)
+            // {
+            //     // Copy elements to global_elements
+            //     memcpy(global_elements, elements, num_elements * sizeof(uint64_t));
+            //     global_num_elements = num_elements;
+            // }
+            // else
+            // {
+            //     // Handle memory allocation failure
+            //     global_num_elements = 0;
+            // }
+
+            // Free memory allocated for elements
+            free(elements);
 
             break;
 
@@ -587,7 +603,7 @@ Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear)
 //     return ESP_OK;
 // }
 
-void getControleGearsRemote(uint64_t **manufactoring_id_fetched, size_t *numGears)
+uint64_t *getControleGearsRemote(size_t *numGears)
 {
     // *manufactoring_id_fetched_i = manufactoring_id_fetched;
     // numGears_i = numGears;
@@ -616,7 +632,6 @@ void getControleGearsRemote(uint64_t **manufactoring_id_fetched, size_t *numGear
     HTTP_REQUEST = HTTP_GET_CONTROL_GEARS_REQUEST;
     err = esp_http_client_perform(client);
 
-    *manufactoring_id_fetched = global_elements; // Assuming 'elements' is the array created in http_event_handler
     *numGears = global_num_elements;
 
     // // Cleanup HTTP client
@@ -624,6 +639,7 @@ void getControleGearsRemote(uint64_t **manufactoring_id_fetched, size_t *numGear
     //     ;
     // response_received = false;
     esp_http_client_cleanup(client);
+    return &global_elements;
 }
 
 void refresh_token()

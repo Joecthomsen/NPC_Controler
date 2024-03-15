@@ -180,14 +180,14 @@ void app_main(void)
             uint64_t manufactoring_ids_fetched[64];
 
             size_t number_of_manufactoring_ids_fetched = 0;
-            getControleGearsRemote(&manufactoring_ids_fetched, &number_of_manufactoring_ids_fetched);
+            uint64_t *res = getControleGearsRemote(&number_of_manufactoring_ids_fetched);
 
             bool new_controle_gear_found = false;
 
             printf("number of id fetched: %d\n", number_of_manufactoring_ids_fetched);
             for (size_t i = 0; i < number_of_manufactoring_ids_fetched; i++)
             {
-                printf("Manufactoring id fetched: %llu\n", manufactoring_ids_fetched[i]);
+                printf("Manufactoring id fetched: %llu\n", res[i]);
             }
 
             // printf("Number of manufactoring ids fetched: %u\n", number_of_manufactoring_ids_fetched);
@@ -196,7 +196,7 @@ void app_main(void)
                 new_controle_gear_found = false;
                 for (size_t j = 0; j < number_of_manufactoring_ids_fetched; j++)
                 {
-                    if (devices_on_bus[i].manufactoring_id == manufactoring_ids_fetched[j])
+                    if (devices_on_bus[i].manufactoring_id == res[j])
                     {
                         new_controle_gear_found = true;
                         vTaskDelay(2000 / portTICK_PERIOD_MS);

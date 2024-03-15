@@ -32,7 +32,7 @@ typedef enum HTTP_REQUEST_TYPE
 Http_status post_json_data(const char **keys, const char **values, int num_pairs);
 Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear);
 Http_status authenticate_token(const char *token);
-void getControleGearsRemote(uint64_t **manufactoring_id_fetched, size_t *numGears);
+uint64_t *getControleGearsRemote(size_t *numGears);
 void refresh_token();
 void add_controle_gear_to_db(uint64_t manufactoring_id);
 bool sign_in();
