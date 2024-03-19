@@ -4,6 +4,7 @@
 #include "Nvs_handler.h"
 #include "esp_log.h"
 #include "constants.h"
+#include "State_manager.h"
 
 #define JSON_BUFFER_SIZE 2048 // Adjust this based on your expected JSON size
 
@@ -236,18 +237,27 @@ esp_err_t http_event_handler(esp_http_client_event_t *evt)
                     if (!result)
                     {
                         ESP_LOGE("HTTP_HANDLER", "Error re-setting refresh token in NVS");
+                        nvs_delete_key_value_pair("authentication", "refresh_token");
+                        nvs_delete_key_value_pair("authentication", "access_token");
+                        set_state(NOT_AUTHENTICATED_STATE);
                     }
                     // Do whatever you want with the refresh token here
                 }
                 else
                 {
-                    printf("Refresh Token not found or invalid format.\n");
+                    nvs_delete_key_value_pair("authentication", "refresh_token");
+                    nvs_delete_key_value_pair("authentication", "access_token");
+                    set_state(NOT_AUTHENTICATED_STATE);
+                    ESP_LOGE("HTTP_HANDLER", "Error re-setting refresh token in NVS");
                 }
             }
 
             else
             {
-                printf("Access Token not found.\n");
+                nvs_delete_key_value_pair("authentication", "refresh_token");
+                nvs_delete_key_value_pair("authentication", "access_token");
+                set_state(NOT_AUTHENTICATED_STATE);
+                ESP_LOGE("HTTP_HANDLER", "Error re-setting refresh token in NVS");
             }
             HTTP_REQUEST = HTTP_NON_REQUEST;
             break;
@@ -345,8 +355,8 @@ Http_status post_json_data(const char **keys, const char **values, int num_pairs
 Http_status post_controle_gear_data(const Controle_gear_values_t *controle_gear)
 {
     current_device_short_address = controle_gear->short_address;
-    char *access_token = get_access_token(controle_gear->short_address); // Will put the access token in new_access_token when http event is triggered
-
+    // char *access_token = get_access_token(controle_gear->short_address); // Will put the access token in new_access_token when http event is triggered
+    refresh_token();
     ESP_LOGI("HTTP_CLIENT", "Access token fetched: %s", new_access_token);
 
     // if (access_token != NULL)

@@ -77,12 +77,11 @@ void app_main(void)
         case NVS_INIT_STATE:
             init_nvs_handler();
             ESP_LOGI(TAG, "NVS initialized");
-            // Remove for production
 
-            char *access_token_namespace = "authentication";
-            const char *key = "refresh_token";
-            nvs_delete_key_value_pair(access_token_namespace, key);
-            // Until here
+            // TODO Remove for production
+            // char *access_token_namespace = "authentication";
+            // const char *key = "refresh_token";
+            // nvs_delete_key_value_pair(access_token_namespace, key);
             set_state(INIT_POP_STATE);
             break;
 

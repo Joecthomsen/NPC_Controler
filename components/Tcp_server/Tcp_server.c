@@ -91,6 +91,7 @@ void tcp_server_task(void *pvParameters)
         if (transmit_error_flag)
         {
             int msg_len = strlen(transmit);
+
             send(sock, transmit, msg_len, 0);
             transmit_error_flag = false;
         }
@@ -225,28 +226,28 @@ void message_handler(char *rx_buffer, int len, int socket)
                 if (result)
                 {
                     // If successful, send a success response
-                    const char *success_msg = "Token set successfully";
-                    send(socket, success_msg, strlen(success_msg), 0);
+                    sprintf(response, "{\"status\":\"Refresh token set successfully\", \"popID\":\"%s\"}", popID);
+                    send(socket, response, strlen(response), 0);
                 }
                 else
                 {
                     // If unsuccessful, send an error response
-                    const char *error_msg = "Failed to set token";
-                    send(socket, error_msg, strlen(error_msg), 0);
+                    sprintf(response, "{\"status\":\"Failed to set token\", \"popID\":\"%s\"}", popID);
+                    send(socket, response, strlen(response), 0);
                 }
             }
             else
             {
                 // Handle case where the token is empty
-                const char *error_msg = "Empty token provided";
-                send(socket, error_msg, strlen(error_msg), 0);
+                sprintf(response, "{\"status\":\"Empty token provided\", \"popID\":\"%s\"}", popID);
+                send(socket, response, strlen(response), 0);
             }
         }
         else
         {
             // Handle case where no token is found
-            const char *error_msg = "Token missing";
-            send(socket, error_msg, strlen(error_msg), 0);
+            sprintf(response, "{\"status\":\"No token provided\", \"popID\":\"%s\"}", popID);
+            send(socket, response, strlen(response), 0);
         }
     }
 
@@ -354,8 +355,9 @@ void message_handler(char *rx_buffer, int len, int socket)
             if (result)
             {
                 // If successful, send a success response
-                const char *success_msg = "Refresh token set successfully in NVS";
-                send(socket, success_msg, strlen(success_msg), 0);
+                // const char *success_msg = "Refresh token set successfully in NVS";
+                sprintf(response, "{\"status\":\"Refresh token set successfully in NVS\", \"popID\":\"%s\"}", popID);
+                send(socket, response, strlen(response), 0);
             }
             else
             {
