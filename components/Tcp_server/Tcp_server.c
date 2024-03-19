@@ -38,7 +38,7 @@ void message_handler(char *rx_buffer, int len, int socket);
 
 // API prototype - move in the future
 char *get_controler_state(void);
-void blink_lamp(uint8_t short_address);
+void blink_lamp(uint64_t manuID);
 
 void tcp_server_task(void *pvParameters)
 {
@@ -167,28 +167,26 @@ void message_handler(char *rx_buffer, int len, int socket)
         set_state(DALI_COMMISION_BUS_STATE);
         xEventGroupSetBits(tcpEventGroup, TCP_EVENT_BIT);
     }
-    else if (strncmp(rx_buffer, "BLINK_LAMP_WITH_SHORT_ADDRESS", strlen("BLINK_LAMP_WITH_SHORT_ADDRESS")) == 0)
+    else if (strncmp(rx_buffer, "BLINK_LAMP", strlen("BLINK_LAMP")) == 0)
     {
         // Extract the short address argument
-        char *argument = rx_buffer + strlen("BLINK_LAMP_WITH_SHORT_ADDRESS");
-        int shortAddress = atoi(argument); // Convert the argument to an integer
-        if (shortAddress >= 0 && shortAddress <= 63)
-        {
-            // Valid short address, proceed with blinking the lamp
-            ESP_LOGI(TAG, "Received BLINK_LAMP_WITH_SHORT_ADDRESS message for short address %d", shortAddress);
-            xEventGroupSetBits(tcpEventGroup, TCP_EVENT_BIT);
-            blink_lamp(shortAddress);
-        }
-        else
-        {
-            // Invalid short address
-            ESP_LOGW(TAG, "Invalid short address %d in BLINK_LAMP_WITH_SHORT_ADDRESS message", shortAddress);
-        }
+        char *argument = rx_buffer + strlen("BLINK_LAMP");
+        uint64_t manuID = strtoull(argument, NULL, 10); // Convert the argument to a uint64_t
+
+        // Valid short address, proceed with blinking the lamp
+        ESP_LOGI(TAG, "Received BLINK_LAMP message for manifactoring ID: %llu", manuID);
+        xEventGroupSetBits(tcpEventGroup, TCP_EVENT_BIT);
+        blink_lamp(manuID);
     }
     else if (strcmp(rx_buffer, "STOP_BLINK") == 0)
     {
         ESP_LOGI(TAG, "Received STOP_BLINK message");
         State_t last_state = get_last_state();
+        // while (last_state == BLINK_LAMP_STATE)
+        // {
+        //     last_state = get_last_state();
+        // }
+
         set_state(last_state);
     }
     else if (strcmp(rx_buffer, "GET_MANUFACTORING_ID_ON_BUS") == 0)
@@ -462,9 +460,9 @@ char *get_controler_state(void)
     return response;
 }
 
-void blink_lamp(uint8_t shortAddress)
+void blink_lamp(uint64_t manuID)
 {
-    selected_driver = shortAddress;
+    selected_driver = manuID;
     set_state(BLINK_LAMP_STATE);
 }
 

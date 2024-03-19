@@ -45,7 +45,7 @@ uint8_t error_counter = 0;
 bool await_user_action = false;
 EventGroupHandle_t tcpEventGroup;
 
-uint8_t selected_driver = 0;
+uint64_t selected_driver = 0;
 char popID[10];
 
 char error_message[128];
@@ -292,7 +292,15 @@ void app_main(void)
         case BLINK_LAMP_STATE:
             ESP_LOGI(TAG, "Blinking lamp");
             uint16_t cmd_turn_on = 0xFEFE; // Turn all lamps on //(selected_driver << 9) | 0xFE;
-            uint16_t cmd_turn_off = selected_driver << 9;
+            uint8_t driver_short_address;
+            for (size_t i = 0; i < 64; i++)
+            {
+                if (devices_on_bus[i].manufactoring_id == selected_driver)
+                {
+                    driver_short_address = devices_on_bus[i].short_address;
+                }
+            }
+            uint16_t cmd_turn_off = driver_short_address << 9;
             send_DALI_Tx(cmd_turn_off);
             vTaskDelay(500 / portTICK_PERIOD_MS);
             send_DALI_Tx(cmd_turn_on);
