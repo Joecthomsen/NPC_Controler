@@ -26,61 +26,61 @@ size_t global_num_elements = 0;
 
 HTTP_REQUEST_TYPE HTTP_REQUEST = HTTP_NON_REQUEST;
 
-char *get_access_token(uint8_t short_address)
-{
-    char *access_token = NULL; // Initialize access_token to NULL
+// char *get_access_token(uint8_t short_address)
+// {
+//     char *access_token = NULL; // Initialize access_token to NULL
 
-    // ESP_LOGI("Short address", "%d", short_address);
+//     // ESP_LOGI("Short address", "%d", short_address);
 
-    // Convert short_address to a string representation
-    char short_addr_key[4]; // Assuming the maximum length of the string representation is 3 characters (plus 1 for the null terminator)
-    snprintf(short_addr_key, sizeof(short_addr_key), "%hhu", short_address);
+//     // Convert short_address to a string representation
+//     char short_addr_key[4]; // Assuming the maximum length of the string representation is 3 characters (plus 1 for the null terminator)
+//     snprintf(short_addr_key, sizeof(short_addr_key), "%hhu", short_address);
 
-    // Your existing code to obtain the refresh token
-    char refresh_token[512];
-    bool error = nvs_get_string("authentication", "refresh_token", refresh_token);
+//     // existing code to obtain the refresh token
+//     char refresh_token[512];
+//     bool error = nvs_get_string("authentication", "refresh_token", refresh_token);
 
-    if (!error)
-    {
-        ESP_LOGI("HTTP_HANDLER", "Error getting refresh token from NVS");
-        return NULL;
-    }
+//     if (!error)
+//     {
+//         ESP_LOGI("HTTP_HANDLER", "Error getting refresh token from NVS");
+//         return NULL;
+//     }
 
-    // Create JSON object containing the refresh token
-    const char *key[] = {"refreshToken"};
-    const char *value[] = {refresh_token};
-    char json_buffer[1024] = {0};
-    create_json_object(key, value, 1, json_buffer);
+//     // Create JSON object containing the refresh token
+//     const char *key[] = {"refreshToken"};
+//     const char *value[] = {refresh_token};
+//     char json_buffer[1024] = {0};
+//     create_json_object(key, value, 1, json_buffer);
 
-    // Log JSON buffer for debugging
-    ESP_LOGI("HTTP_HANDLER", "json_buffer: %s", json_buffer);
+//     // Log JSON buffer for debugging
+//     ESP_LOGI("HTTP_HANDLER", "json_buffer: %s", json_buffer);
 
-    // Configure HTTP client for the request
-    esp_http_client_config_t config = {
-        .url = "http://95.217.159.233/auth/controller/refresh_token",
-        .method = HTTP_METHOD_POST,
-        .cert_pem = NULL,
-        .auth_type = HTTP_AUTH_TYPE_NONE,
-        .buffer_size = 1024,
-        .event_handler = http_event_handler};
+//     // Configure HTTP client for the request
+//     esp_http_client_config_t config = {
+//         .url = "http://95.217.159.233/auth/controller/refresh_token",
+//         .method = HTTP_METHOD_POST,
+//         .cert_pem = NULL,
+//         .auth_type = HTTP_AUTH_TYPE_NONE,
+//         .buffer_size = 1024,
+//         .event_handler = http_event_handler};
 
-    // Initialize HTTP client
-    esp_http_client_handle_t client = esp_http_client_init(&config);
+//     // Initialize HTTP client
+//     esp_http_client_handle_t client = esp_http_client_init(&config);
 
-    // Set JSON buffer as POST field
-    esp_http_client_set_post_field(client, json_buffer, strlen(json_buffer));
-    esp_http_client_set_header(client, "Content-Type", "application/json");
+//     // Set JSON buffer as POST field
+//     esp_http_client_set_post_field(client, json_buffer, strlen(json_buffer));
+//     esp_http_client_set_header(client, "Content-Type", "application/json");
 
-    // Perform HTTP POST request
-    esp_err_t err = ESP_FAIL;
-    HTTP_REQUEST = HTTP_ACCESS_TOKEN_REQUEST;
-    err = esp_http_client_perform(client);
+//     // Perform HTTP POST request
+//     esp_err_t err = ESP_FAIL;
+//     HTTP_REQUEST = HTTP_ACCESS_TOKEN_REQUEST;
+//     err = esp_http_client_perform(client);
 
-    // Cleanup HTTP client
-    esp_http_client_cleanup(client);
+//     // Cleanup HTTP client
+//     esp_http_client_cleanup(client);
 
-    return access_token; // Return access token (may be NULL if request failed)
-}
+//     return access_token; // Return access token (may be NULL if request failed)
+// }
 
 // Helper function to append key-value pair to JSON string
 void append_json_pair(char *json, const char *key, const char *value)

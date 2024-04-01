@@ -89,7 +89,16 @@ uint8_t calculate_short_address_standard_cmd(uint8_t short_address)
     return result;
 }
 
-// TODO add comment and error handling (DALI_Status)
+/**
+ * @brief Read the manufacturer ID.
+ *
+ * This function reads the manufacturer ID from the specified memory locations associated
+ * with the given short address. It reads multiple bytes from memory locations and combines
+ * them to form a 64-bit manufacturer ID.
+ *
+ * @param short_address The short address to read the manufacturer ID from.
+ * @return The 64-bit manufacturer ID.
+ */
 uint64_t read_manufactor_id(uint8_t short_address)
 {
     uint8_t MSB;
