@@ -176,11 +176,6 @@ void send_DALI_Tx(uint16_t cmd)
 
     uint64_t timerVal;
     gptimer_get_raw_count(timer_tx, &timerVal);
-    // for(int i=31; i>=0; i--) {
-    //     int bit = (dataToTransmit >> i) & 1;
-    //     printf("%d", bit);
-    // }
-    // printf("\n");
 }
 
 /**
@@ -339,6 +334,14 @@ uint8_t percent_to_dali_mapping(uint8_t input)
     return 2.54 * input + 1;
 }
 
+/**
+ * @brief Initialize the GPIO pins for transmitting and receiving data.
+ *
+ * This function configures two GPIO pins, one for transmitting data (TX) and another for receiving
+ * data (RX). It sets their direction, interrupt type, pull-up and pull-down configurations as per
+ * the provided parameters. Additionally, it registers an ISR (Interrupt Service Routine) for the
+ * RX pin to handle incoming data interrupts.
+ */
 void init_GPIO()
 {
 
@@ -397,6 +400,15 @@ void init_GPIO()
     }
 }
 
+/**
+ * @brief Initialize the timers for transmitting and receiving data.
+ *
+ * This function initializes two timers, one for transmitting data and another for receiving data.
+ * It configures the timers with specific settings such as clock source, counting direction,
+ * resolution frequency, and interrupt priority. Additionally, it sets up alarm actions for the
+ * transmit timer and registers a callback function to handle timer alarm events. Finally, it enables
+ * both timers for operation.
+ */
 void init_timer()
 {
 
@@ -481,16 +493,38 @@ void init_timer()
         ESP_LOGI(TAG, "Rx Timer enabled in DALI_transmit_init() function");
 }
 
+/**
+ * @brief Check if new data is available.
+ *
+ * This function returns a boolean value indicating whether new data is available.
+ * It relies on the flag newDataFlag to determine the availability of new data.
+ *
+ * @return true if new data is available, false otherwise.
+ */
 bool new_data_available()
 {
     return newDataFlag;
 }
 
+/**
+ * @brief Clear the new data flag.
+ *
+ * This function clears the newDataFlag, indicating that any previously available
+ * new data has been processed.
+ */
 void clear_new_data_flag()
 {
     newDataFlag = false;
 }
 
+/**
+ * @brief Get the newly received data.
+ *
+ * This function retrieves the newly received data from the rx_data_buffer and returns it.
+ * It reads 8 bits from the buffer and constructs a uint8_t value from them.
+ *
+ * @return The newly received data.
+ */
 uint8_t get_new_data()
 {
 

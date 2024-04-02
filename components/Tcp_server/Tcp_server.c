@@ -193,7 +193,10 @@ void message_handler(char *rx_buffer, int len, int socket)
     {
         char *manu_id = nvs_read_all_manufactoring_ids();
         uint16_t manu_id_len = strlen(manu_id);
-        send(socket, manu_id, manu_id_len, 0);
+        sprintf(response, "{\"status\":\"ManufactoringID\", \"ids\":\"%s\"}", manu_id);
+        send(socket, response, strlen(response), 0);
+
+        // send(socket, manu_id, manu_id_len, 0);
     }
 
     else if (strncmp(rx_buffer, "SET_REFRESH_TOKEN", strlen("SET_REFRESH_TOKEN")) == 0)
