@@ -33,6 +33,19 @@
 
 void process_DALI_response(DALI_Status response);
 
+// Define a FreeRTOS software timer handle
+TimerHandle_t oneHourTimer;
+
+// Define a flag to track whether one hour has passed
+bool oneHourPassed = true;
+
+// Define a callback function for the timer
+void oneHourTimerCallback(TimerHandle_t xTimer)
+{
+    // Set the flag to indicate one hour has passed
+    oneHourPassed = true;
+}
+
 Device_t devices_on_bus[64];
 
 static const char *TAG = "app_main";
@@ -75,6 +88,15 @@ void app_main(void)
             // ****************************   Normal states    ****************************
 
         case NVS_INIT_STATE:
+            // This is irelevant for this state, but needed to use the RTOS timer. Move to own state maybe?
+            oneHourTimer = xTimerCreate("OneHourTimer", pdMS_TO_TICKS(3600000), pdFALSE, 0, oneHourTimerCallback);
+            if (oneHourTimer == NULL)
+            {
+                // Error handling if timer creation fails
+            }
+            // Start the timer
+            xTimerStart(oneHourTimer, 0);
+
             init_nvs_handler();
             ESP_LOGI(TAG, "NVS initialized");
 
@@ -211,10 +233,14 @@ void app_main(void)
 
         case SYSTEM_RUNNING_STATE:
             ESP_LOGI(TAG, "System running");
-            for (size_t i = 0; i < devices_on_bus_count; i++)
+            if (oneHourPassed)
             {
-                Controle_gear_values_t controle_gear = fetch_controle_gear_data(devices_on_bus[i].short_address);
-                post_controle_gear_data(&controle_gear);
+                for (size_t i = 0; i < devices_on_bus_count; i++)
+                {
+                    Controle_gear_values_t controle_gear = fetch_controle_gear_data(devices_on_bus[i].short_address);
+                    post_controle_gear_data(&controle_gear);
+                }
+                oneHourPassed = false;
             }
             const EventBits_t tcpEventBits = xEventGroupWaitBits(tcpEventGroup, TCP_EVENT_BIT, pdTRUE, pdFALSE, ONE_HOUR);
             break;
