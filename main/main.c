@@ -31,6 +31,8 @@
 #include "Http_handler.h"
 #include "device.h"
 
+// TaskHandle_t task_handles[10];
+
 void process_DALI_response(DALI_Status response);
 
 // Define a FreeRTOS software timer handle
@@ -64,18 +66,19 @@ char popID[10];
 char error_message[128];
 bool error_message_send = false;
 
-void taskOne(void *parameter)
-{
-    while (true)
-    {
-        printf("Task one...\n");
-        vTaskDelay(15000 / portTICK_PERIOD_MS);
-        vTaskDelete(NULL);
-    }
-}
+// void taskOne(void *parameter)
+// {
+//     while (true)
+//     {
+//         printf("Task one...\n");
+//         vTaskDelay(15000 / portTICK_PERIOD_MS);
+//         vTaskDelete(NULL);
+//     }
+// }
 
 void app_main(void)
 {
+    // Create the semaphore
     tcpEventGroup = xEventGroupCreate();
     init_state_manager();
     xTaskCreate(state_task, "state_task", 2048, NULL, 5, NULL);

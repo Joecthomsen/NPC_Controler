@@ -2,6 +2,11 @@
 #include "driver/gptimer.h"
 #include "esp_log.h"
 #include "driver/gptimer_types.h"
+#include "../State_manager/include/State_manager.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include <wifi_provisioning/manager.h>
+#include "esp_task_wdt.h"
 
 int incrementer = 0;
 int incrementer2 = 0;
@@ -36,6 +41,20 @@ void init_GPIO();
 void init_timer();
 uint32_t manchester_encode(uint16_t data);
 uint8_t percent_to_dali_mapping(uint8_t input);
+
+static void gpio_isr_handler_test(void *arg)
+{
+    set_state(NVS_INIT_STATE);
+    // uint32_t gpio_num = (uint32_t)arg;
+    //  ESP_LOGI("WOOOOW", "INTERRUPT!!!!!");
+    wifi_prov_mgr_reset_provisioning();
+    // for (size_t i = 0; i < 2; i++)
+    // {
+    //     vTaskDelete(task_handles[i]);
+    // }
+
+    esp_restart();
+}
 
 /**
  * @brief Initialize the DALI transmitter.
@@ -149,6 +168,12 @@ void receive_dali_data(void *arg)
     return;
     //    incrementer++;
 }
+
+void test_interrupt(void *arg)
+{
+    ESP_LOGI(TAG, "Interrupt");
+}
+void (*test_ir)(void *) = test_interrupt;
 
 // Get function pointer
 void (*isr_rx_handler)(void *) = receive_dali_data;
@@ -364,40 +389,72 @@ void init_GPIO()
 
     };
 
-    err = gpio_config(&io_config_tx); // Init the GPIO TX
+    /////////////////////////////////////////////////////////////////////
+
+    // Configure the GPIO pin RX
+    gpio_config_t test = {
+        .mode = RX_PIN_DIRECTION,
+        .intr_type = RX_INTERRUPT_TYPE,
+        .pin_bit_mask = (1ULL << GPIO_NUM_1),
+        .pull_down_en = RX_PIN_PULLUP,
+        .pull_up_en = RX_PIN_PULLUP,
+
+    };
+
+    err = gpio_config(&test); // Init the GPIO
     if (err != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to configure GPIO pin");
     }
-    else
-        ESP_LOGI(TAG, "GPIO TX pin configured successfully");
+    // err = gpio_isr_register(test_ir, NULL, 0, handle_rx); // Register the GPIO
+    // if (err != ESP_OK)
+    // {
+    //     ESP_LOGE(TAG, "Failed to register GPIO interrupt");
+    // }
 
-    err = gpio_set_level(GPIO_PIN_TX, DALI_IDLE_VALUE); // Set the GPIO TX pin to 0 (LOW) as the DALI standby requires
+    err = gpio_install_isr_service(4);
     if (err != ESP_OK)
     {
-        ESP_LOGE(TAG, "Failed to set TX pin to LOW");
+        ESP_LOGE(TAG, "Failed to install GPIO interrupt service");
     }
-    else
-        ESP_LOGI(TAG, "TX pin set to LOW successfully");
+    gpio_isr_handler_add(GPIO_NUM_1, gpio_isr_handler_test, (void *)GPIO_NUM_1);
 
-    err = gpio_config(&io_config_rx); // Init the GPIO
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to configure GPIO pin");
-    }
-    else
-        ESP_LOGI(TAG, "GPIO RX pin configured successfully");
+    ///////////////////////////////////////////////////////////////////
 
-    err = gpio_isr_register(isr_rx_handler, NULL, 0, handle_rx); // Register the GPIO
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to register GPIO interrupt");
-    }
-    else
-    {
-        ESP_LOGI(TAG, "GPIO interrupt registered successfully");
-        gpio_intr_enable(GPIO_PIN_RX);
-    }
+    // err = gpio_config(&io_config_tx); // Init the GPIO TX
+    // if (err != ESP_OK)
+    // {
+    //     ESP_LOGE(TAG, "Failed to configure GPIO pin");
+    // }
+    // else
+    //     ESP_LOGI(TAG, "GPIO TX pin configured successfully");
+
+    // err = gpio_set_level(GPIO_PIN_TX, DALI_IDLE_VALUE); // Set the GPIO TX pin to 0 (LOW) as the DALI standby requires
+    // if (err != ESP_OK)
+    // {
+    //     ESP_LOGE(TAG, "Failed to set TX pin to LOW");
+    // }
+    // else
+    //     ESP_LOGI(TAG, "TX pin set to LOW successfully");
+
+    // err = gpio_config(&io_config_rx); // Init the GPIO
+    // if (err != ESP_OK)
+    // {
+    //     ESP_LOGE(TAG, "Failed to configure GPIO pin");
+    // }
+    // else
+    //     ESP_LOGI(TAG, "GPIO RX pin configured successfully");
+
+    // err = gpio_isr_register(isr_rx_handler, NULL, 0, handle_rx); // Register the GPIO
+    // if (err != ESP_OK)
+    // {
+    //     ESP_LOGE(TAG, "Failed to register GPIO interrupt");
+    // }
+    // else
+    // {
+    //     ESP_LOGI(TAG, "GPIO interrupt registered successfully");
+    //     gpio_intr_enable(GPIO_PIN_RX);
+    // }
 }
 
 /**
