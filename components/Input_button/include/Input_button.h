@@ -1,18 +1,12 @@
-#include "driver/gpio.h"
-#include "driver/gptimer.h"
-#include "driver/gptimer_types.h"
+#pragma once
 
-// GPIO pin configuration
-#define INPUT_BUTTON_GPIO_PIN GPIO_NUM_10
-#define INPUT_BUTTON_INTERRUPT_TYPE GPIO_INTR_NEGEDGE
+#include "driver/gpio.h"
+
+// GPIO Rx configuration
+#define GPIO_PIN_INPUT_BUTTON GPIO_NUM_1
+#define INPUT_BUTTON_INTERRUPT_TYPE GPIO_INTR_ANYEDGE
 #define INPUT_BUTTON_PIN_DIRECTION GPIO_MODE_INPUT
-#define INPUT_BUTTON_PIN_PULLUP GPIO_PULLUP_DISABLE
+#define INPUT_BUTTON_PIN_PULLUP GPIO_PULLUP_ENABLE
 #define INPUT_BUTTON_PIN_PULLDOWN GPIO_PULLDOWN_DISABLE
 
-// GP Timer configuration
-#define CLOCK_SOURCE_INPUT_BUTTON GPTIMER_CLK_SRC_DEFAULT
-#define COUNTER_DIRECTION_INPUT_BUTTON GPTIMER_COUNT_UP
-#define TIMER_FREQUENZ_INPUT_BUTTON 1000000 // 1MHz
-#define TIMER_INTERRUPT_PRIORITY_INPUT_BUTTON 2
-
-void init_button(void);
+void init_input_button();

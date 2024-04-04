@@ -32,6 +32,7 @@
                 "/home/johannes/Desktop/Afslutnings_projekt/contoler/components/API/include",
                 "/home/johannes/Desktop/Afslutnings_projekt/contoler/components/Nvs_handler/include",
                 "/home/johannes/Desktop/Afslutnings_projekt/contoler/components/API/include",
+                "/home/johannes/Desktop/Afslutnings_projekt/contoler/components/Input_button/include/*",
                 "/home/johannes/esp/esp-idf/components/esp_netif/linux/stubs/include",
                 "/home/johannes/Desktop/Afslutnings_projekt/contoler/main/*"
             ],

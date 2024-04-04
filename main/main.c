@@ -27,9 +27,9 @@
 #include "State_manager.h"
 #include "Nvs_handler.h"
 #include "constants.h"
-#include "Input_button.h"
 #include "Http_handler.h"
 #include "device.h"
+#include "Input_button.h"
 
 // TaskHandle_t task_handles[10];
 
@@ -122,6 +122,8 @@ void app_main(void)
             break;
 
         case DALI_COMMUNICATION_INIT_STATE:
+            // init_button();
+            init_input_button();
             init_DALI_communication();
             ESP_LOGI(TAG, "DALI communication initialized");
             set_state(TCP_SERVER_INIT_STATE);

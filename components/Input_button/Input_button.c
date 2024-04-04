@@ -1,71 +1,58 @@
 #include <stdio.h>
 #include "Input_button.h"
-#include "esp_log.h"
 #include "freertos/FreeRTOS.h"
 
-void input_button_isr_handler(void *arg);
-void (*input_button_isr_handler_ptr)(void *) = input_button_isr_handler;
-gpio_isr_handle_t *handler_gpio_isr;
-gptimer_handle_t timer_input_button; // Init the Tx timer
+#include "esp_log.h"
 
-static const char *TAG = "GPIO Input button";
+static const char *TAG = "INPUT BUTTON";
 
-void init_button(void)
+void reset_task(void *pvParameters)
 {
-    esp_err_t err;
-    gpio_config_t io_conf;
-    // disable interrupt
-    io_conf.intr_type = INPUT_BUTTON_INTERRUPT_TYPE;
-    // set as input mode
-    io_conf.mode = INPUT_BUTTON_PIN_DIRECTION;
-    // bit mask of the pin
-    io_conf.pin_bit_mask = (1ULL << INPUT_BUTTON_GPIO_PIN);
-    // disable pull-down mode
-    io_conf.pull_down_en = INPUT_BUTTON_PIN_PULLDOWN;
-    // disable pull-up mode
-    io_conf.pull_up_en = INPUT_BUTTON_PIN_PULLUP;
-    // configure GPIO with the given settings
-    err = gpio_config(&io_conf);
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to configure GPIO input pin");
-    }
-    else
-    {
-        ESP_LOGI(TAG, "GPIO input pin configured successfully");
-    }
 
-    err = gpio_isr_register(input_button_isr_handler_ptr, NULL, 0, &handler_gpio_isr);
+    // wifi_prov_mgr_reset_provisioning();
 
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to register GPIO button interrupt");
-    }
-    else
-    {
-        ESP_LOGI(TAG, "GPIO interrupt registered successfully");
-        gpio_intr_enable(INPUT_BUTTON_GPIO_PIN);
-    }
-
-    // Configure the GP Timer
-    gptimer_config_t gptimer_config_input_button =
-        {
-            .clk_src = CLOCK_SOURCE_INPUT_BUTTON,
-            .direction = COUNTER_DIRECTION_INPUT_BUTTON,
-            .resolution_hz = TIMER_FREQUENZ_INPUT_BUTTON,
-            .intr_priority = TIMER_INTERRUPT_PRIORITY_INPUT_BUTTON,
-        };
-    err = gptimer_new_timer(&gptimer_config_input_button, &timer_input_button); // Create the new Tx timer
-    if (err != ESP_OK)
-    {
-        ESP_LOGE(TAG, "Failed to configure the Tx timer");
-    }
-    else
-        ESP_LOGI(TAG, "Tx timer configured successfully");
+    esp_restart();
+    vTaskDelete(NULL);
 }
 
-void input_button_isr_handler(void *arg)
+static void gpio_isr_handler_test(void *arg)
 {
-    ESP_LOGI(TAG, "GPIO button interrupt triggered");
-    vTaskDelay(100 / portTICK_PERIOD_MS);
+    xTaskCreate(reset_task, "reset_task", 4098, NULL, 9, NULL);
+}
+
+void init_input_button()
+{
+
+    esp_err_t err;
+
+    // Configure the GPIO pin RX
+    gpio_config_t input_button = {
+        .mode = INPUT_BUTTON_PIN_DIRECTION,
+        .intr_type = INPUT_BUTTON_INTERRUPT_TYPE,
+        .pin_bit_mask = (1ULL << GPIO_NUM_1),
+        .pull_down_en = INPUT_BUTTON_PIN_PULLUP,
+        .pull_up_en = INPUT_BUTTON_PIN_PULLUP,
+
+    };
+
+    err = gpio_config(&input_button); // Init the GPIO
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to configure GPIO for input button");
+    }
+
+    err = gpio_install_isr_service(4);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to install input button interrupt service");
+    }
+    gpio_isr_handler_add(GPIO_NUM_1, gpio_isr_handler_test, (void *)GPIO_NUM_1);
+    if (err != ESP_OK)
+    {
+        ESP_LOGE(TAG, "Failed to add GPIO ISR handler for input button");
+    }
+    else
+    {
+        ESP_LOGI(TAG, "GPIO ISR handler for input button added successfully");
+    }
 }
