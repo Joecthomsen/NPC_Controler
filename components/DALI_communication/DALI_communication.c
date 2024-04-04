@@ -42,11 +42,11 @@ void init_timer();
 uint32_t manchester_encode(uint16_t data);
 uint8_t percent_to_dali_mapping(uint8_t input);
 
-static void gpio_isr_handler_test(void *arg)
+void reset_task(void *pvParameters)
 {
-    set_state(NVS_INIT_STATE);
-    // uint32_t gpio_num = (uint32_t)arg;
-    //  ESP_LOGI("WOOOOW", "INTERRUPT!!!!!");
+    // vTaskDelete(NULL);
+    //  uint32_t gpio_num = (uint32_t)arg;
+    //   ESP_LOGI("WOOOOW", "INTERRUPT!!!!!");
     wifi_prov_mgr_reset_provisioning();
     // for (size_t i = 0; i < 2; i++)
     // {
@@ -54,6 +54,11 @@ static void gpio_isr_handler_test(void *arg)
     // }
 
     esp_restart();
+}
+
+static void gpio_isr_handler_test(void *arg)
+{
+    xTaskCreate(reset_task, "reset_task", 4098, NULL, 9, NULL);
 }
 
 /**
