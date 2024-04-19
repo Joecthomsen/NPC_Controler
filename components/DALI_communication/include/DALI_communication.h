@@ -1,6 +1,8 @@
 #pragma once
 
 #include "driver/gpio.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 // Commands
 #define INITIALIZE_ALL_DEVICE 0xA500   // Send twice
@@ -58,6 +60,8 @@
 // Manchester encoding
 #define MANCHESTER_ENCODED_0 0b10
 #define MANCHESTER_ENCODED_1 0b01
+
+// extern TaskHandle_t task_handles[10];
 
 enum State
 {

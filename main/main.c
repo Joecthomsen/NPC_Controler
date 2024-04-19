@@ -27,9 +27,11 @@
 #include "State_manager.h"
 #include "Nvs_handler.h"
 #include "constants.h"
-#include "Input_button.h"
 #include "Http_handler.h"
 #include "device.h"
+#include "Input_button.h"
+
+// TaskHandle_t task_handles[10];
 
 void process_DALI_response(DALI_Status response);
 
@@ -64,18 +66,19 @@ char popID[10];
 char error_message[128];
 bool error_message_send = false;
 
-void taskOne(void *parameter)
-{
-    while (true)
-    {
-        printf("Task one...\n");
-        vTaskDelay(15000 / portTICK_PERIOD_MS);
-        vTaskDelete(NULL);
-    }
-}
+// void taskOne(void *parameter)
+// {
+//     while (true)
+//     {
+//         printf("Task one...\n");
+//         vTaskDelay(15000 / portTICK_PERIOD_MS);
+//         vTaskDelete(NULL);
+//     }
+// }
 
 void app_main(void)
 {
+    // Create the semaphore
     tcpEventGroup = xEventGroupCreate();
     init_state_manager();
     xTaskCreate(state_task, "state_task", 2048, NULL, 5, NULL);
@@ -119,6 +122,8 @@ void app_main(void)
             break;
 
         case DALI_COMMUNICATION_INIT_STATE:
+            // init_button();
+            init_input_button();
             init_DALI_communication();
             ESP_LOGI(TAG, "DALI communication initialized");
             set_state(TCP_SERVER_INIT_STATE);
