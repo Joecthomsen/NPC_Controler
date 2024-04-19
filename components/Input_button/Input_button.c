@@ -1,23 +1,70 @@
 #include <stdio.h>
 #include "Input_button.h"
 #include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
+#include <wifi_provisioning/manager.h>
 
 #include "esp_log.h"
+#include "Nvs_handler.h"
 
 static const char *TAG = "INPUT BUTTON";
+
+static TimerHandle_t hold_timer = NULL;
 
 void reset_task(void *pvParameters)
 {
 
-    // wifi_prov_mgr_reset_provisioning();
-
+    wifi_prov_mgr_reset_provisioning();
+    // nvs_flash_erase();
+    char key[] = "authentication";
+    char refresh_token[] = "refresh_token";
+    char access_token[] = "access_token";
+    nvs_delete_key_value_pair(key, refresh_token);
+    nvs_delete_key_value_pair(key, access_token);
     esp_restart();
     vTaskDelete(NULL);
 }
 
-static void gpio_isr_handler_test(void *arg)
+void button_press_callback()
 {
-    xTaskCreate(reset_task, "reset_task", 4098, NULL, 9, NULL);
+    // Start the timer when the button is pressed
+    hold_timer = xTimerCreate("HoldTimer", BUTTON_HOLD_DURATION, pdFALSE, (void *)0, reset_task);
+    xTimerStart(hold_timer, 0);
+}
+
+void button_release_callback()
+{
+    // If the button is released before the timer expires, stop the timer
+    if (hold_timer != NULL)
+    {
+        xTimerStop(hold_timer, 0);
+        xTimerDelete(hold_timer, 0);
+        hold_timer = NULL;
+    }
+}
+
+static void gpio_input_button_isr_handler(void *arg)
+{
+    // BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    if (gpio_get_level(GPIO_NUM_1) == 1)
+    {
+        button_press_callback();
+    }
+    else
+    {
+        button_release_callback();
+    }
+
+    // // Inform the task manager that a higher priority task has been woken up
+    // vTaskNotifyGiveFromISR(NULL, &xHigherPriorityTaskWoken);
+    // // Switch context if necessary
+    // if (xHigherPriorityTaskWoken == pdTRUE)
+    // {
+    //     portYIELD_FROM_ISR();
+    // }
+
+    // xTaskCreate(reset_task, "reset_task", 4098, NULL, 9, NULL);
 }
 
 void init_input_button()
@@ -46,7 +93,7 @@ void init_input_button()
     {
         ESP_LOGE(TAG, "Failed to install input button interrupt service");
     }
-    gpio_isr_handler_add(GPIO_NUM_1, gpio_isr_handler_test, (void *)GPIO_NUM_1);
+    gpio_isr_handler_add(GPIO_NUM_1, gpio_input_button_isr_handler, (void *)GPIO_NUM_1);
     if (err != ESP_OK)
     {
         ESP_LOGE(TAG, "Failed to add GPIO ISR handler for input button");
